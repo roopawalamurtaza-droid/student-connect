@@ -1,0 +1,64 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+process.env.GCLOUD_PROJECT='demo-student-connect';
+process.env.UNIVERSITY_EMAIL_DOMAINS='example.edu';
+const {mutate}=await import('../index.js');
+const {getAuth}=await import('firebase-admin/auth');
+const {getFirestore}=await import('firebase-admin/firestore');
+const db=getFirestore();
+const call=(uid,action,payload={})=>mutate.run({auth:{uid,token:{}},data:{action,payload}});
+test('API enforces onboarding, authorship, roles and suspension',async()=>{
+  for(const uid of ['apiStudent','apiOther','apiAdmin','apiUnverified','apiExternal']) {
+    await getAuth().createUser({uid,email:`${uid}@${uid==='apiExternal'?'evil.com':'example.edu'}`,emailVerified:uid!=='apiUnverified'});
+  }
+  const profile={name:'API student',department:'Engineering',enrollment:'SC1',semester:2,bio:'',skills:[]};
+  await assert.rejects(call('apiUnverified','saveProfile',profile),{code:'permission-denied'});
+  await assert.rejects(call('apiExternal','saveProfile',profile),{code:'permission-denied'});
+  await assert.rejects(call('apiStudent','saveProfile',{...profile,role:'administrator'}),{code:'invalid-argument'});
+  for(const uid of ['apiStudent','apiOther','apiAdmin'])await call(uid,'saveProfile',profile);
+  assert.equal((await db.doc('users/apiStudent').get()).data().role,'student');
+  await call('apiStudent','createPost',{body:'A real emulator post'});
+  const post=(await db.collection('posts').where('authorId','==','apiStudent').get()).docs[0];
+  await assert.rejects(call('apiOther','deletePost',{id:post.id}),{code:'permission-denied'});
+  await assert.rejects(call('apiStudent','moderateUser',{id:'apiOther',role:'administrator',suspended:false}),{code:'permission-denied'});
+  await call('apiOther','likePost',{id:post.id});
+  assert.equal((await post.ref.collection('likes').get()).size,1);
+  await call('apiOther','likePost',{id:post.id});
+  assert.equal((await post.ref.collection('likes').get()).size,0);
+  await call('apiOther','comment',{id:post.id,body:'Thanks for sharing!'});
+  assert.equal((await post.ref.collection('comments').get()).size,1);
+  assert.equal((await db.collection('users/apiStudent/notifications').get()).size,2);
+  await db.doc('users/apiAdmin').update({role:'administrator'});
+  await call('apiAdmin','moderateUser',{id:'apiOther',role:'student',suspended:true});
+  await assert.rejects(call('apiOther','createPost',{body:'Blocked'}),{code:'permission-denied'});
+  await call('apiStudent','deletePost',{id:post.id});
+  assert.equal((await post.ref.get()).exists,false);
+  assert.equal((await post.ref.collection('comments').get()).size,0);
+});
+test('uploads reject invalid media and strip metadata by re-encoding',async()=>{
+  await getAuth().createUser({uid:'apiMedia',email:'media@example.edu',emailVerified:true});
+  await call('apiMedia','saveProfile',{name:'Media student',department:'Design',enrollment:'SC2',semester:1,bio:'',skills:[]});
+  await assert.rejects(call('apiMedia','uploadImage',{base64:Buffer.from('<svg>bad</svg>').toString('base64'),purpose:'post'}),{code:'invalid-argument'});
+  const sharp=(await import('sharp')).default;
+  const image=await sharp({create:{width:8,height:8,channels:3,background:'#153e43'}}).png().toBuffer();
+  const result=await call('apiMedia','uploadImage',{base64:image.toString('base64'),purpose:'avatar'});
+  assert.match(result.path,/^images\/apiMedia\/[A-Za-z0-9]+\.jpg$/);
+  assert.equal((await db.doc('users/apiMedia').get()).data().photoPath,result.path);
+  const {getStorage}=await import('firebase-admin/storage');
+  const [bytes]=await getStorage().bucket('demo-student-connect.appspot.com').file(result.path).download();
+  assert.equal((await sharp(bytes).metadata()).format,'jpeg');
+  await assert.rejects(call('apiMedia','createPost',{body:'Spoofed image',imagePath:'images/another-user/photo.jpg'}),{code:'permission-denied'});
+});
+test('events require manager privileges and registration toggles safely',async()=>{
+  const uid='apiEvents';await getAuth().createUser({uid,email:'events@example.edu',emailVerified:true});
+  await call(uid,'saveProfile',{name:'Event student',department:'Science',enrollment:'SC3',semester:1,bio:'',skills:[]});
+  const event={title:'Campus meetup',description:'A test event',location:'Studio',startsAt:Date.now()+7200000,communityId:''};
+  await assert.rejects(call(uid,'saveEvent',{event}),{code:'permission-denied'});
+  await db.doc(`users/${uid}`).update({role:'representative'});
+  await call(uid,'saveEvent',{event});
+  const saved=(await db.collection('events').where('ownerId','==',uid).get()).docs[0];
+  await call(uid,'registerEvent',{id:saved.id});
+  assert.equal((await saved.ref.collection('registrations').get()).size,1);
+  await call(uid,'registerEvent',{id:saved.id});
+  assert.equal((await saved.ref.collection('registrations').get()).size,0);
+});

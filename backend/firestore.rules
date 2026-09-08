@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null && request.auth.token.email_verified == true; }
+    function active() { return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.suspended == false; }
+    function staff() { return active() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['moderator', 'administrator']; }
+    match /users/{uid} {
+      allow read: if (signedIn() && request.auth.uid == uid) || active();
+      match /notifications/{id} { allow read: if active() && request.auth.uid == uid; }
+    }
+    match /posts/{id} {
+      allow read: if active();
+      match /likes/{uid} { allow read: if active(); }
+      match /comments/{comment} { allow read: if active(); }
+    }
+    match /communities/{id} {
+      allow read: if active();
+      match /members/{uid} { allow read: if active(); }
+    }
+    match /events/{id} {
+      allow read: if active();
+      match /registrations/{uid} { allow read: if active() && (request.auth.uid == uid || staff()); }
+    }
+    match /announcements/{id} { allow read: if active(); }
+    match /reports/{id} { allow read: if staff(); }
+    match /audit/{id} { allow read: if staff(); }
+    // All writes go through the callable API. Deny unknown collections too.
+    match /{document=**} { allow write: if false; }
+  }
+}

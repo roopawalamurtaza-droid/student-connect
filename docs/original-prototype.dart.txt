@@ -1,0 +1,1487 @@
+import 'package:flutter/material.dart';
+
+// Global Theme Notifier for Dark Mode Toggle
+final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
+
+void main() {
+  runApp(const PPSUConnectApp());
+}
+
+// =========================================================================
+// 🚀 APP ROOT & THEMING
+// =========================================================================
+class PPSUConnectApp extends StatelessWidget {
+  const PPSUConnectApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeNotifier,
+      builder: (context, currentMode, child) {
+        return MaterialApp(
+          title: 'PPSU Connect',
+          debugShowCheckedModeBanner: false,
+          themeMode: currentMode,
+          theme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.light,
+            visualDensity: VisualDensity.adaptivePlatformDensity,
+            scaffoldBackgroundColor: const Color(0xFFF4F7F9),
+            colorScheme: ColorScheme.fromSeed(
+              brightness: Brightness.light,
+              seedColor: const Color(0xFF0F3963),
+              primary: const Color(0xFF0F3963),
+              secondary: const Color(0xFF10B981),
+              surface: Colors.white,
+            ),
+            dividerTheme: DividerThemeData(color: Colors.grey.shade200, space: 1, thickness: 1),
+            fontFamily: 'Segoe UI',
+          ),
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.dark,
+            visualDensity: VisualDensity.adaptivePlatformDensity,
+            scaffoldBackgroundColor: const Color(0xFF121212),
+            colorScheme: ColorScheme.fromSeed(
+              brightness: Brightness.dark,
+              seedColor: const Color(0xFF4A90E2),
+              primary: const Color(0xFF4A90E2),
+              secondary: const Color(0xFF10B981),
+              surface: const Color(0xFF1E1E1E),
+            ),
+            dividerTheme: const DividerThemeData(color: Color(0xFF2C2C2C), space: 1, thickness: 1),
+            fontFamily: 'Segoe UI',
+          ),
+          home: const WebLoginScreen(),
+        );
+      },
+    );
+  }
+}
+
+// =========================================================================
+// ✨ ANIMATION & INTERACTION WRAPPERS
+// =========================================================================
+class FadeSlideIn extends StatelessWidget {
+  final Widget child;
+  final int delay;
+
+  const FadeSlideIn({super.key, required this.child, this.delay = 0});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
+    );
+  }
+}
+
+class InteractiveButton extends StatefulWidget {
+  final String label;
+  final VoidCallback onPressed;
+  final bool isPrimary;
+  final IconData? icon;
+
+  const InteractiveButton({super.key, required this.label, required this.onPressed, this.isPrimary = true, this.icon});
+
+  @override
+  State<InteractiveButton> createState() => _InteractiveButtonState();
+}
+
+class _InteractiveButtonState extends State<InteractiveButton> {
+  bool _isLoading = false;
+  bool _isSuccess = false;
+
+  void _handlePress() async {
+    setState(() => _isLoading = true);
+    await Future.delayed(const Duration(milliseconds: 800));
+    setState(() {
+      _isLoading = false;
+      _isSuccess = true;
+    });
+    widget.onPressed();
+    await Future.delayed(const Duration(seconds: 2));
+    if (mounted) setState(() => _isSuccess = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bgColor = widget.isPrimary ? Theme.of(context).colorScheme.primary : Colors.transparent;
+    final fgColor = widget.isPrimary ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.primary;
+
+    return SizedBox(
+      height: 48,
+      width: double.infinity,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: bgColor,
+          foregroundColor: fgColor,
+          elevation: 0,
+          side: widget.isPrimary ? BorderSide.none : BorderSide(color: Theme.of(context).colorScheme.primary),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        onPressed: _isLoading || _isSuccess ? null : _handlePress,
+        child: _isLoading
+            ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: fgColor, strokeWidth: 2))
+            : _isSuccess
+            ? const Icon(Icons.check, color: Colors.green)
+            : Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (widget.icon != null) ...[Icon(widget.icon, size: 20), const SizedBox(width: 8)],
+            Text(widget.label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// =========================================================================
+// 📁 MOCK DATA & MODELS
+// =========================================================================
+class RecommendedProject {
+  final String title;
+  String status;
+  final String description;
+  final List<String> tags;
+  final int matchPercentage;
+  final String author;
+  RecommendedProject({required this.title, required this.status, required this.description, required this.tags, required this.matchPercentage, required this.author});
+}
+
+class AvailableFaculty {
+  final String name;
+  final String department;
+  final String status;
+  final String imageUrl;
+  final String officeHours;
+  final String cabin;
+  final List<String> expertise;
+  AvailableFaculty({required this.name, required this.department, required this.status, required this.imageUrl, required this.officeHours, required this.cabin, required this.expertise});
+}
+
+class MentorProfile {
+  final String name;
+  final String department;
+  final String title;
+  final double rating;
+  final List<String> skills;
+  final String imageUrl;
+  final String officeHours;
+  MentorProfile({required this.name, required this.department, required this.title, required this.rating, required this.skills, required this.imageUrl, required this.officeHours});
+}
+
+class StudentProfile {
+  final String name;
+  final String enrollmentId;
+  final String department;
+  final int semester;
+  final double cgpa;
+  final List<String> topSkills;
+  final String imageUrl;
+  StudentProfile({required this.name, required this.enrollmentId, required this.department, required this.semester, required this.cgpa, required this.topSkills, required this.imageUrl});
+}
+
+class AppNotification {
+  final String title;
+  final String description;
+  final String time;
+  bool isRead;
+  AppNotification({required this.title, required this.description, required this.time, this.isRead = false});
+}
+
+final List<RecommendedProject> mockDashboardProjects = [
+  RecommendedProject(title: "Smart Campus IoT Network", status: "ACTIVE", description: "Deploy a network of IoT sensors across campus for real-time monitoring.", tags: ["IoT", "Python"], matchPercentage: 70, author: "Dr. Kulkarni"),
+  RecommendedProject(title: "AI-Driven Mentor Chatbot", status: "PROPOSED", description: "Build a chatbot using LLMs to provide academic guidance.", tags: ["AI", "React"], matchPercentage: 85, author: "R. Sharma"),
+];
+
+final List<AvailableFaculty> mockFaculty = [
+  AvailableFaculty(name: "Dr. Rajesh Kulkarni", department: "Computer Eng.", status: "AVAILABLE", imageUrl: "https://i.pravatar.cc/150?img=11", officeHours: "Tue, Thu: 10 AM - 12 PM", cabin: "Block A - C200", expertise: ["ML", "IoT"]),
+  AvailableFaculty(name: "Dr. Meera Joshi", department: "Info Tech", status: "IN CLASS", imageUrl: "https://i.pravatar.cc/150?img=5", officeHours: "Mon-Fri 2 PM - 4 PM", cabin: "Block B - C201", expertise: ["Vision", "AI"]),
+  AvailableFaculty(name: "Dr. Arvind Desai", department: "Computer Eng.", status: "MEETING", imageUrl: "https://i.pravatar.cc/150?img=15", officeHours: "Mon-Fri 2 PM - 4 PM", cabin: "Block C - C202", expertise: ["Cloud", "Security"]),
+];
+
+final List<MentorProfile> mockMentors = [
+  MentorProfile(name: "Dr. Rajesh Kulkarni", department: "Computer Eng.", title: "Professor & HOD", rating: 4.9, skills: ["AI", "Cloud"], imageUrl: "https://i.pravatar.cc/150?img=11", officeHours: "Tue, Thu: 10 AM - 12 PM"),
+  MentorProfile(name: "Prof. Alok Varma", department: "Info Tech", title: "Assistant Professor", rating: 4.8, skills: ["React", "Node.js"], imageUrl: "https://i.pravatar.cc/150?img=53", officeHours: "Mon, Wed: 11 AM - 1 PM"),
+];
+
+final List<StudentProfile> mockStudents = [
+  StudentProfile(name: "Rishabh Sharma", enrollmentId: "PPSU2021CE001", department: "Computer Eng.", semester: 5, cgpa: 8.01, topSkills: ["SQL", "React"], imageUrl: "https://i.pravatar.cc/150?img=68"),
+  StudentProfile(name: "Anika Patel", enrollmentId: "PPSU2021IT002", department: "Info Tech", semester: 7, cgpa: 8.86, topSkills: ["TensorFlow", "Python"], imageUrl: "https://i.pravatar.cc/150?img=32"),
+  StudentProfile(name: "Karan Mehta", enrollmentId: "PPSU2022ME003", department: "Mechanical", semester: 3, cgpa: 8.30, topSkills: ["CAD", "Java"], imageUrl: "https://i.pravatar.cc/150?img=53"),
+];
+
+final List<AppNotification> mockNotifications = [
+  AppNotification(title: "Mentorship Request Accepted", description: "Dr. Kulkarni accepted your request.", time: "10 mins ago", isRead: false),
+  AppNotification(title: "New Project Match", description: "Your profile matches 'AI Chatbot'.", time: "2 hours ago", isRead: false),
+];
+
+// =========================================================================
+// 📁 LOGIN SCREEN (Centered "Fit-to-Screen" Layout)
+// =========================================================================
+class WebLoginScreen extends StatefulWidget {
+  const WebLoginScreen({super.key});
+
+  @override
+  State<WebLoginScreen> createState() => _WebLoginScreenState();
+}
+
+class _WebLoginScreenState extends State<WebLoginScreen> {
+  final _idController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
+
+  void _simulateLogin(String role) async {
+    setState(() => _isLoading = true);
+    if (role == 'STUDENT') {
+      _idController.text = 'PPSU2021CE001';
+    } else if (role == 'FACULTY') {
+      _idController.text = 'FAC-RK-092';
+    } else {
+      _idController.text = 'ADMIN-01';
+    }
+    _passwordController.text = 'ppsu123';
+
+    await Future.delayed(const Duration(milliseconds: 800));
+
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => const MainWorkspace(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
+
+    Widget loginForm = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("SECURE SIGN IN", style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+        const SizedBox(height: 24),
+        TextField(
+          controller: _idController,
+          decoration: InputDecoration(
+            labelText: "Enrollment ID / Employee ID",
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _passwordController,
+          obscureText: true,
+          decoration: InputDecoration(
+            labelText: "Password",
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+        const SizedBox(height: 32),
+        InteractiveButton(
+          label: "Sign In",
+          onPressed: () => _simulateLogin("STUDENT"),
+        ),
+        const SizedBox(height: 24),
+        Divider(color: Theme.of(context).dividerColor),
+        const SizedBox(height: 16),
+        const Text("QUICK DEMO LOGIN", style: TextStyle(color: Colors.grey, fontSize: 10, letterSpacing: 1.5, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _buildDemoLoginBtn("STUDENT", "Rishabh"),
+            _buildDemoLoginBtn("FACULTY", "Dr. Kulkarni"),
+            _buildDemoLoginBtn("ADMIN", "System"),
+          ],
+        ),
+      ],
+    );
+
+    return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF4F7F9),
+      body: Center( // Centers the content in the viewport (Fit to screen)
+        child: SingleChildScrollView( // Allows scrolling if window is too small, prevents overflow
+          padding: const EdgeInsets.all(24.0),
+          child: FadeSlideIn(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Determine if we are on a large screen
+                bool isDesktop = constraints.maxWidth > 800;
+
+                return Container(
+                  constraints: BoxConstraints(maxWidth: isDesktop ? 900 : 400),
+                  decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+                            blurRadius: 24,
+                            offset: const Offset(0, 8)
+                        )
+                      ]
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: isDesktop
+                      ? Row(
+                    children: [
+                      Expanded(
+                        flex: 5,
+                        child: Container(
+                          color: Theme.of(context).colorScheme.primary,
+                          padding: const EdgeInsets.all(48),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+                                child: Text("PP", style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 24)),
+                              ),
+                              const SizedBox(height: 24),
+                              const Text("PPSU Connect", style: TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.w900, height: 1.1)),
+                              const SizedBox(height: 16),
+                              const Text("Where Students & Faculty Build the Future Together.", style: TextStyle(color: Colors.white70, fontSize: 16)),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 5,
+                        child: Padding(
+                          padding: const EdgeInsets.all(48.0),
+                          child: loginForm,
+                        ),
+                      ),
+                    ],
+                  )
+                      : Padding(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary, borderRadius: BorderRadius.circular(8)),
+                              child: Text("PP", style: TextStyle(color: Theme.of(context).colorScheme.onPrimary, fontWeight: FontWeight.bold, fontSize: 20)),
+                            ),
+                            const SizedBox(width: 16),
+                            Text("PPSU Connect", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
+                          ],
+                        ),
+                        const SizedBox(height: 32),
+                        loginForm,
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDemoLoginBtn(String role, String name) {
+    return InkWell(
+      onTap: () => _simulateLogin(role),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: 95,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          border: Border.all(color: Theme.of(context).dividerColor),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(role, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 10, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(name, style: const TextStyle(fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// =========================================================================
+// 📁 MAIN WORKSPACE (Responsive Constrained Scaffold)
+// =========================================================================
+class MainWorkspace extends StatefulWidget {
+  const MainWorkspace({super.key});
+
+  @override
+  State<MainWorkspace> createState() => _MainWorkspaceState();
+}
+
+class _MainWorkspaceState extends State<MainWorkspace> {
+  int _selectedIndex = 0;
+
+  final List<String> _menuItems = ["Dashboard", "My Profile", "Skills Directory", "Faculty Availability", "Mentors", "Projects", "Notifications", "Settings"];
+  final List<IconData> _menuIcons = [Icons.dashboard_outlined, Icons.person_outline, Icons.auto_awesome_outlined, Icons.schedule_outlined, Icons.people_outlined, Icons.folder_outlined, Icons.notifications_none_outlined, Icons.settings_outlined];
+
+  void _onMenuTap(int index, bool isMobile) {
+    setState(() => _selectedIndex = index);
+    if (isMobile) {
+      Navigator.pop(context);
+    }
+  }
+
+  Widget _buildSidebar(bool isMobile) {
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      width: 280,
+      color: Theme.of(context).colorScheme.surface,
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (!isMobile)
+              Container(
+                height: 70,
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                alignment: Alignment.centerLeft,
+                decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor))),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary, borderRadius: BorderRadius.circular(6)),
+                      child: Text("PP", style: TextStyle(color: Theme.of(context).colorScheme.onPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text("PPSU Connect", style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 16, fontWeight: FontWeight.bold)),
+                        const Text("UNIVERSITY PORTAL", style: TextStyle(color: Colors.grey, fontSize: 9, letterSpacing: 1)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            if (isMobile)
+              Container(
+                padding: const EdgeInsets.all(24),
+                child: Row(
+                  children: [
+                    const CircleAvatar(radius: 24, backgroundImage: NetworkImage("https://i.pravatar.cc/150?img=68")),
+                    const SizedBox(width: 16),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Rishabh Sharma", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.onSurface)),
+                        const Text("STUDENT", style: TextStyle(color: Colors.grey, fontSize: 11, letterSpacing: 0.5, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              child: Text("WORKSPACE", style: TextStyle(color: Colors.grey, fontSize: 11, letterSpacing: 1.5, fontWeight: FontWeight.bold)),
+            ),
+            Expanded(
+              child: ListView.builder(
+                  itemCount: _menuItems.length,
+                  itemBuilder: (context, index) {
+                    bool isSelected = _selectedIndex == index;
+                    return Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => _onMenuTap(index, isMobile),
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(_menuIcons[index], color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.grey.shade700), size: 22),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Text(
+                                  _menuItems[index],
+                                  style: TextStyle(color: isSelected ? Colors.white : (isDark ? Colors.white : Colors.grey.shade900), fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500, fontSize: 15),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+              ),
+            ),
+            if (isMobile)
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: InteractiveButton(
+                  label: "Log Out",
+                  isPrimary: false,
+                  icon: Icons.logout,
+                  onPressed: () => _showLogoutDialog(context),
+                ),
+              )
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    bool isDesktop = MediaQuery.of(context).size.width > 900;
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Scaffold(
+      appBar: isDesktop ? null : AppBar(
+        title: Text(_menuItems[_selectedIndex], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
+        elevation: 0,
+        centerTitle: false,
+        bottom: PreferredSize(preferredSize: const Size.fromHeight(1), child: Container(color: Theme.of(context).dividerColor, height: 1)),
+        actions: [
+          IconButton(
+            icon: Icon(themeNotifier.value == ThemeMode.light ? Icons.dark_mode_outlined : Icons.light_mode),
+            onPressed: () {
+              themeNotifier.value = themeNotifier.value == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      drawer: isDesktop ? null : Drawer(child: _buildSidebar(true)),
+      body: Row(
+        children: [
+          if (isDesktop) _buildSidebar(false),
+          if (isDesktop) VerticalDivider(width: 1, thickness: 1, color: Theme.of(context).dividerColor),
+          Expanded(
+            child: Column(
+              children: [
+                if (isDesktop) // Custom Top Bar for Desktop
+                  Container(
+                    height: 70,
+                    decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor))),
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            constraints: const BoxConstraints(maxWidth: 400),
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white10 : Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const TextField(
+                              decoration: InputDecoration(
+                                hintText: "Search faculty, projects, skills...",
+                                prefixIcon: Icon(Icons.search, size: 20),
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(vertical: 10),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        IconButton(
+                          icon: Icon(themeNotifier.value == ThemeMode.light ? Icons.dark_mode_outlined : Icons.light_mode),
+                          onPressed: () {
+                            themeNotifier.value = themeNotifier.value == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.notifications_none_outlined),
+                          onPressed: () => setState(() => _selectedIndex = 6),
+                        ),
+                        const SizedBox(width: 16),
+                        Container(width: 1, height: 32, color: Theme.of(context).dividerColor),
+                        const SizedBox(width: 16),
+                        InkWell(
+                          onTap: () => _showLogoutDialog(context),
+                          borderRadius: BorderRadius.circular(30),
+                          child: Row(
+                            children: [
+                              const CircleAvatar(radius: 18, backgroundImage: NetworkImage("https://i.pravatar.cc/150?img=68")),
+                              const SizedBox(width: 12),
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text("Rishabh Sharma", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Theme.of(context).colorScheme.onSurface)),
+                                  const Text("STUDENT", style: TextStyle(color: Colors.grey, fontSize: 10, letterSpacing: 0.5, fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                              const SizedBox(width: 8),
+                              const Icon(Icons.keyboard_arrow_down, size: 20, color: Colors.grey),
+                            ],
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+
+                // Main Content Area - Constrained to fit cleanly without stretching infinitely
+                Expanded(
+                  child: FadeSlideIn(
+                    key: ValueKey(_selectedIndex),
+                    child: Center( // Keeps content centered on ultra-wide displays
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1200), // Max width to prevent infinite stretching
+                        child: SingleChildScrollView(
+                          padding: EdgeInsets.all(isDesktop ? 32.0 : 16.0),
+                          child: SafeArea(
+                            top: false,
+                            child: _getSelectedContent(context),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("User Session"),
+          content: const Text("Would you like to log out of PPSU Connect?"),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+            ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const WebLoginScreen()));
+                },
+                child: const Text("Log Out")
+            )
+          ],
+        )
+    );
+  }
+
+  Widget _getSelectedContent(BuildContext context) {
+    switch (_selectedIndex) {
+      case 0: return const DashboardContentView();
+      case 1: return const ProfileContentView();
+      case 2: return const SkillsDirectoryView();
+      case 3: return const FacultyAvailabilityView();
+      case 4: return const MentorsView();
+      case 5: return const ProjectsManagementView();
+      case 6: return const NotificationsContentView();
+      case 7: return const SettingsView();
+      default: return const DashboardContentView();
+    }
+  }
+}
+
+// =========================================================================
+// 📁 DASHBOARD CONTENT
+// =========================================================================
+class DashboardContentView extends StatelessWidget {
+  const DashboardContentView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+        builder: (context, constraints) {
+          bool isDesktop = constraints.maxWidth > 900;
+          bool isTablet = constraints.maxWidth > 600 && constraints.maxWidth <= 900;
+          double spacing = 16;
+
+          int columns = isDesktop ? 4 : (isTablet ? 2 : 2);
+          double cardWidth = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: spacing,
+                runSpacing: spacing,
+                children: [
+                  SizedBox(width: cardWidth, child: _buildStatCard(context, "4", "Verified Skills")),
+                  SizedBox(width: cardWidth, child: _buildStatCard(context, "1", "Certifications")),
+                  SizedBox(width: cardWidth, child: _buildStatCard(context, "12", "Collaborations")),
+                  SizedBox(width: cardWidth, child: _buildStatCard(context, "3", "Faculty Mentors")),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Flex(
+                direction: isDesktop ? Axis.horizontal : Axis.vertical,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: isDesktop ? 7 : 0,
+                    child: Container(
+                      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Theme.of(context).dividerColor)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(20.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text("Recommended Projects", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
+                                      const SizedBox(height: 4),
+                                      const Text("Matched by your skills", style: TextStyle(color: Colors.grey, fontSize: 13)),
+                                    ],
+                                  ),
+                                ),
+                                if (isDesktop || isTablet)
+                                  TextButton(onPressed: (){}, child: Text("View all", style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)))
+                              ],
+                            ),
+                          ),
+                          Divider(color: Theme.of(context).dividerColor, height: 1),
+                          ...mockDashboardProjects.map((p) => _buildProjectRow(context, p, isDesktop)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: isDesktop ? 24 : 0, height: isDesktop ? 0 : 24),
+                  Expanded(
+                    flex: isDesktop ? 4 : 0,
+                    child: Container(
+                      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Theme.of(context).dividerColor)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(20.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text("Faculty Available Now", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
+                                TextButton(onPressed: (){}, child: Text("All", style: TextStyle(color: Theme.of(context).colorScheme.primary)))
+                              ],
+                            ),
+                          ),
+                          Divider(color: Theme.of(context).dividerColor, height: 1),
+                          ...mockFaculty.map((f) => _buildFacultyRow(context, f)),
+                        ],
+                      ),
+                    ),
+                  )
+                ],
+              )
+            ],
+          );
+        }
+    );
+  }
+
+  Widget _buildStatCard(BuildContext context, String value, String subtitle) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Theme.of(context).dividerColor)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(value, style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Theme.of(context).colorScheme.primary)),
+          const SizedBox(height: 8),
+          Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProjectRow(BuildContext context, RecommendedProject project, bool isDesktop) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor))),
+      child: Flex(
+        direction: isDesktop ? Axis.horizontal : Axis.vertical,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: isDesktop ? 1 : 0,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 12,
+                  runSpacing: 8,
+                  children: [
+                    Text(project.title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(border: Border.all(color: Theme.of(context).dividerColor), borderRadius: BorderRadius.circular(6)),
+                      child: Text(project.status, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                    )
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(project.description, style: const TextStyle(color: Colors.grey, fontSize: 14, height: 1.4), maxLines: 2, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: project.tags.map((tag) => Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                    child: Text(tag, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 11, fontWeight: FontWeight.bold)),
+                  )).toList(),
+                )
+              ],
+            ),
+          ),
+          if (!isDesktop) const SizedBox(height: 16),
+          Column(
+            crossAxisAlignment: isDesktop ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            children: [
+              const Text("MATCH", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+              Text("${project.matchPercentage}%", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF10B981))),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFacultyRow(BuildContext context, AvailableFaculty faculty) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor))),
+      child: Row(
+        children: [
+          CircleAvatar(radius: 20, backgroundImage: NetworkImage(faculty.imageUrl), backgroundColor: Theme.of(context).dividerColor),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(faculty.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 4),
+                Text(faculty.department, style: const TextStyle(color: Colors.grey, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(color: const Color(0xFFDEF7EC).withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.1 : 1.0), borderRadius: BorderRadius.circular(6)),
+            child: const Text("AVAILABLE", style: TextStyle(color: Color(0xFF10B981), fontSize: 9, fontWeight: FontWeight.bold)),
+          )
+        ],
+      ),
+    );
+  }
+}
+
+// =========================================================================
+// 📁 SKILLS DIRECTORY VIEW
+// =========================================================================
+class SkillsDirectoryView extends StatefulWidget {
+  const SkillsDirectoryView({super.key});
+
+  @override
+  State<SkillsDirectoryView> createState() => _SkillsDirectoryViewState();
+}
+
+class _SkillsDirectoryViewState extends State<SkillsDirectoryView> {
+  String _searchQuery = "";
+  String _selectedDepartment = "All Departments";
+  String _selectedSkill = "All Skills";
+
+  @override
+  Widget build(BuildContext context) {
+    List<StudentProfile> filteredStudents = mockStudents.where((s) {
+      bool matchesSearch = s.name.toLowerCase().contains(_searchQuery.toLowerCase()) || s.enrollmentId.toLowerCase().contains(_searchQuery.toLowerCase());
+      bool matchesDept = _selectedDepartment == "All Departments" || s.department == _selectedDepartment;
+      bool matchesSkill = _selectedSkill == "All Skills" || s.topSkills.contains(_selectedSkill);
+      return matchesSearch && matchesDept && matchesSkill;
+    }).toList();
+
+    return LayoutBuilder(
+        builder: (context, constraints) {
+          bool isDesktop = constraints.maxWidth > 900;
+          bool isTablet = constraints.maxWidth > 600 && constraints.maxWidth <= 900;
+          double spacing = 16;
+          int columns = isDesktop ? 3 : (isTablet ? 2 : 1);
+          double cardWidth = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildPageHeader(context, "STUDENT DISCOVERY", "Skills Directory", "Find collaborators across departments by skill, semester, and proficiency."),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Theme.of(context).dividerColor)),
+                child: Flex(
+                  direction: isDesktop ? Axis.horizontal : Axis.vertical,
+                  children: [
+                    Expanded(
+                      flex: isDesktop ? 1 : 0,
+                      child: TextField(
+                        onChanged: (val) => setState(() => _searchQuery = val),
+                        decoration: InputDecoration(
+                          hintText: "Search students...",
+                          prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 20),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Theme.of(context).dividerColor)),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Theme.of(context).dividerColor)),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: isDesktop ? 16 : 0, height: isDesktop ? 0 : 16),
+                    _buildDropdown(context, _selectedDepartment, ["All Departments", "Computer Eng.", "Info Tech", "Mechanical", "Civil"], (val) => setState(() => _selectedDepartment = val!), isDesktop ? 220 : double.infinity),
+                    SizedBox(width: isDesktop ? 16 : 0, height: isDesktop ? 0 : 16),
+                    _buildDropdown(context, _selectedSkill, ["All Skills", "SQL", "React", "Python", "TensorFlow", "CAD", "Java"], (val) => setState(() => _selectedSkill = val!), isDesktop ? 220 : double.infinity),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              filteredStudents.isEmpty
+                  ? const Center(child: Padding(padding: EdgeInsets.all(48.0), child: Text("No students found.")))
+                  : Wrap(
+                spacing: spacing, runSpacing: spacing,
+                children: filteredStudents.map((student) {
+                  return SizedBox(
+                    width: cardWidth,
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Theme.of(context).dividerColor)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              CircleAvatar(radius: 28, backgroundImage: NetworkImage(student.imageUrl), backgroundColor: Theme.of(context).dividerColor),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(student.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.onSurface), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    const SizedBox(height: 4),
+                                    Text(student.enrollmentId, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Text("${student.department} · Sem ${student.semester}", style: const TextStyle(color: Colors.grey, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 20),
+                          const Text("TOP SKILLS", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1)),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8, runSpacing: 8,
+                            children: student.topSkills.map((skill) => Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(color: Theme.of(context).dividerColor, borderRadius: BorderRadius.circular(6)),
+                              child: Text(skill, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
+                            )).toList(),
+                          ),
+                          const SizedBox(height: 24),
+                          Divider(color: Theme.of(context).dividerColor, height: 1),
+                          const SizedBox(height: 16),
+                          InteractiveButton(label: "Connect", isPrimary: false, onPressed: (){})
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              )
+            ],
+          );
+        }
+    );
+  }
+}
+
+// =========================================================================
+// 📁 FACULTY AVAILABILITY VIEW
+// =========================================================================
+class FacultyAvailabilityView extends StatefulWidget {
+  const FacultyAvailabilityView({super.key});
+
+  @override
+  State<FacultyAvailabilityView> createState() => _FacultyAvailabilityViewState();
+}
+
+class _FacultyAvailabilityViewState extends State<FacultyAvailabilityView> {
+  String _searchQuery = "";
+  String _selectedDept = "All Departments";
+
+  @override
+  Widget build(BuildContext context) {
+    List<AvailableFaculty> filtered = mockFaculty.where((f) {
+      bool matchesSearch = f.name.toLowerCase().contains(_searchQuery.toLowerCase()) || f.department.toLowerCase().contains(_searchQuery.toLowerCase());
+      bool matchesDept = _selectedDept == "All Departments" || f.department == _selectedDept;
+      return matchesSearch && matchesDept;
+    }).toList();
+
+    return LayoutBuilder(
+        builder: (context, constraints) {
+          bool isDesktop = constraints.maxWidth > 900;
+          bool isTablet = constraints.maxWidth > 600 && constraints.maxWidth <= 900;
+          double spacing = 16;
+          int columns = isDesktop ? 3 : (isTablet ? 2 : 1);
+          double cardWidth = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildPageHeader(context, "FACULTY DIRECTORY", "Faculty Availability", "Live status, consultation hours, and direct booking."),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Theme.of(context).dividerColor)),
+                child: Flex(
+                  direction: isDesktop ? Axis.horizontal : Axis.vertical,
+                  children: [
+                    Expanded(
+                      flex: isDesktop ? 1 : 0,
+                      child: TextField(
+                        onChanged: (val) => setState(() => _searchQuery = val),
+                        decoration: InputDecoration(
+                          hintText: "Search faculty...",
+                          prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 20),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Theme.of(context).dividerColor)),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Theme.of(context).dividerColor)),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: isDesktop ? 16 : 0, height: isDesktop ? 0 : 16),
+                    _buildDropdown(context, _selectedDept, ["All Departments", "Computer Eng.", "Info Tech", "Mechanical", "Civil"], (val) => setState(() => _selectedDept = val!), isDesktop ? 220 : double.infinity),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              filtered.isEmpty
+                  ? const Center(child: Padding(padding: EdgeInsets.all(48.0), child: Text("No faculty found.")))
+                  : Wrap(
+                spacing: spacing, runSpacing: spacing,
+                children: filtered.map((fac) {
+                  Color sColor = fac.status == "AVAILABLE" ? const Color(0xFF10B981) : fac.status == "IN CLASS" ? Colors.orange : Colors.blue;
+                  return SizedBox(
+                    width: cardWidth,
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Theme.of(context).dividerColor)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              CircleAvatar(radius: 28, backgroundImage: NetworkImage(fac.imageUrl), backgroundColor: Theme.of(context).dividerColor),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(fac.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.onSurface), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    const SizedBox(height: 4),
+                                    Text(fac.department, style: const TextStyle(color: Colors.grey, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(color: sColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                            child: Text(fac.status, style: TextStyle(color: sColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                          ),
+                          const SizedBox(height: 20),
+                          Row(
+                            children: [
+                              const Icon(Icons.location_on_outlined, size: 16, color: Colors.grey),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text(fac.cabin, style: const TextStyle(color: Colors.grey, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const Icon(Icons.calendar_today_outlined, size: 16, color: Colors.grey),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text(fac.officeHours, style: const TextStyle(color: Colors.grey, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          InteractiveButton(label: "Book Slot", onPressed: (){})
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              )
+            ],
+          );
+        }
+    );
+  }
+}
+
+// =========================================================================
+// 📁 MENTORS VIEW
+// =========================================================================
+class MentorsView extends StatelessWidget {
+  const MentorsView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+        builder: (context, constraints) {
+          bool isDesktop = constraints.maxWidth > 900;
+          bool isTablet = constraints.maxWidth > 600 && constraints.maxWidth <= 900;
+          double spacing = 16;
+          int columns = isDesktop ? 3 : (isTablet ? 2 : 1);
+          double cw = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildPageHeader(context, "MENTORSHIP", "Mentors Directory", "Request guidance for your projects or career."),
+              const SizedBox(height: 24),
+              Wrap(
+                spacing: spacing, runSpacing: spacing,
+                children: mockMentors.map((m) {
+                  return SizedBox(
+                    width: cw,
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Theme.of(context).dividerColor)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              CircleAvatar(radius: 28, backgroundImage: NetworkImage(m.imageUrl), backgroundColor: Theme.of(context).dividerColor),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(m.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.onSurface), maxLines: 1),
+                                    const SizedBox(height: 4),
+                                    Text(m.title, style: const TextStyle(color: Colors.grey, fontSize: 13), maxLines: 1),
+                                  ],
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  const Icon(Icons.star, color: Colors.amber, size: 16),
+                                  const SizedBox(width: 4),
+                                  Text("${m.rating}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                ],
+                              )
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(m.department, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                          const SizedBox(height: 20),
+                          Wrap(
+                            spacing: 8, runSpacing: 8,
+                            children: m.skills.map((s) => Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(color: Theme.of(context).dividerColor, borderRadius: BorderRadius.circular(6)),
+                              child: Text(s, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
+                            )).toList(),
+                          ),
+                          const SizedBox(height: 24),
+                          InteractiveButton(label: "Request Mentor", onPressed: (){})
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              )
+            ],
+          );
+        }
+    );
+  }
+}
+
+// =========================================================================
+// 📁 PROFILE VIEW
+// =========================================================================
+class ProfileContentView extends StatelessWidget {
+  const ProfileContentView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    bool isDesktop = MediaQuery.of(context).size.width > 600;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Theme.of(context).dividerColor)),
+          child: Column(
+            children: [
+              Container(
+                height: 140,
+                decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: [Theme.of(context).colorScheme.primary, const Color(0xFF10B981)]),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12))
+                ),
+              ),
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    padding: EdgeInsets.only(left: isDesktop ? 160 : 24, top: isDesktop ? 24 : 80, right: 24, bottom: 32),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Flex(
+                          direction: isDesktop ? Axis.horizontal : Axis.vertical,
+                          mainAxisAlignment: isDesktop ? MainAxisAlignment.spaceBetween : MainAxisAlignment.start,
+                          crossAxisAlignment: isDesktop ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("Rishabh Sharma", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Theme.of(context).colorScheme.onSurface)),
+                                const SizedBox(height: 6),
+                                const Text("PPSU2021CE001 · Computer Engineering", style: TextStyle(color: Colors.grey, fontSize: 14)),
+                              ],
+                            ),
+                            if (!isDesktop) const SizedBox(height: 24),
+                            OutlinedButton.icon(
+                                onPressed: () {},
+                                icon: const Icon(Icons.edit, size: 16),
+                                label: const Text("Edit Profile"),
+                                style: OutlinedButton.styleFrom(
+                                    foregroundColor: Theme.of(context).colorScheme.onSurface,
+                                    side: BorderSide(color: Theme.of(context).dividerColor)
+                                )
+                            )
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Positioned(
+                    left: 24,
+                    top: -60,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, shape: BoxShape.circle),
+                      child: const CircleAvatar(radius: 56, backgroundImage: NetworkImage("https://i.pravatar.cc/150?img=68")),
+                    ),
+                  )
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        _buildPageHeader(context, "ABOUT", "Student Bio", "A passionate computer engineering student focusing on AI and Cloud systems. Active in university research projects and eager to collaborate on full-stack development initiatives."),
+      ],
+    );
+  }
+}
+
+// =========================================================================
+// 📁 PROJECTS & NOTIFICATIONS & SETTINGS VIEWS
+// =========================================================================
+class ProjectsManagementView extends StatelessWidget {
+  const ProjectsManagementView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildPageHeader(context, "WORKSPACE", "My Projects", "Manage your ongoing university projects and collaborations."),
+        const SizedBox(height: 24),
+        ...mockDashboardProjects.map((p) => Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Theme.of(context).dividerColor)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(p.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text(p.description, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+              const SizedBox(height: 16),
+              InteractiveButton(label: "Manage Project", isPrimary: false, onPressed: (){})
+            ],
+          ),
+        )),
+      ],
+    );
+  }
+}
+
+class NotificationsContentView extends StatelessWidget {
+  const NotificationsContentView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildPageHeader(context, "ALERTS", "Notifications Center", "Stay updated on your mentorships, project requests, and university announcements."),
+        const SizedBox(height: 24),
+        Container(
+          decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Theme.of(context).dividerColor)),
+          child: Column(
+            children: mockNotifications.map((n) => ListTile(
+              contentPadding: const EdgeInsets.all(20),
+              leading: Container(width: 10, height: 10, decoration: BoxDecoration(color: n.isRead ? Colors.transparent : const Color(0xFF10B981), shape: BoxShape.circle)),
+              title: Text(n.title, style: TextStyle(fontWeight: n.isRead ? FontWeight.normal : FontWeight.bold, fontSize: 16)),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(n.description, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+              ),
+              trailing: Text(n.time, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            )).toList(),
+          ),
+        )
+      ],
+    );
+  }
+}
+
+class SettingsView extends StatefulWidget {
+  const SettingsView({super.key});
+
+  @override
+  State<SettingsView> createState() => _SettingsViewState();
+}
+
+class _SettingsViewState extends State<SettingsView> {
+  bool _emailNotif = true;
+  bool _pushNotif = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildPageHeader(context, "PREFERENCES", "Account Settings", "Manage your notifications and application behavior."),
+        const SizedBox(height: 24),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Theme.of(context).dividerColor)),
+          child: Column(
+            children: [
+              SwitchListTile(
+                title: const Text("Email Notifications", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                subtitle: const Text("Receive email alerts for mentorship requests and project matches", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                value: _emailNotif,
+                activeColor: Theme.of(context).colorScheme.primary,
+                onChanged: (val) => setState(() => _emailNotif = val),
+              ),
+              Divider(color: Theme.of(context).dividerColor),
+              SwitchListTile(
+                title: const Text("Push Notifications", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                subtitle: const Text("Receive live alerts directly in your browser or device", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                value: _pushNotif,
+                activeColor: Theme.of(context).colorScheme.primary,
+                onChanged: (val) => setState(() => _pushNotif = val),
+              ),
+            ],
+          ),
+        )
+      ],
+    );
+  }
+}
+
+// =========================================================================
+// 🛠️ REUSABLE WIDGETS
+// =========================================================================
+Widget _buildPageHeader(BuildContext context, String overline, String title, String subtitle) {
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(24),
+    decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Theme.of(context).dividerColor)),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(overline, style: const TextStyle(color: Colors.grey, fontSize: 11, letterSpacing: 1.5, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 6),
+        Text(title, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Theme.of(context).colorScheme.onSurface)),
+        const SizedBox(height: 6),
+        Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+      ],
+    ),
+  );
+}
+
+Widget _buildDropdown(BuildContext context, String value, List<String> items, Function(String?) onChanged, double width) {
+  return SizedBox(
+    width: width,
+    child: Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border.all(color: Theme.of(context).dividerColor),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          isExpanded: true,
+          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+          dropdownColor: Theme.of(context).colorScheme.surface,
+          items: items.map((d) => DropdownMenuItem(value: d, child: Text(d, style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface)))).toList(),
+          onChanged: onChanged,
+        ),
+      ),
+    ),
+  );
+}

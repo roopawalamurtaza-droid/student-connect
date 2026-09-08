@@ -1,0 +1,77 @@
+i  emulators: Starting emulators: auth, firestore, storage
+i  emulators: Detected demo project ID "demo-student-connect", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail.
+i  firestore: Firestore Emulator logging to firestore-debug.log
++  firestore: Firestore Emulator was started in standard edition.
++  firestore: Firestore Emulator UI websocket is running on 9150.
+!  Unexpected rules runtime error: WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::arrayBaseOffset has been called by com.google.protobuf.UnsafeUtil$MemoryAccessor (file:/C:/Users/Admin/.cache/firebase/emulators/cloud-storage-rules-runtime-v1.1.3.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.protobuf.UnsafeUtil$MemoryAccessor
+WARNING: sun.misc.Unsafe::arrayBaseOffset will be removed in a future release
+
+i  Running script: node --test test/rules.integration.js test/api.integration.js
+TAP version 13
+# (node:27788) MetadataLookupWarning: received unexpected error = All promises were rejected code = UNKNOWN
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: API enforces onboarding, authorship, roles and suspension
+ok 1 - API enforces onboarding, authorship, roles and suspension
+  ---
+  duration_ms: 4140.3485
+  type: 'test'
+  ...
+# Subtest: uploads reject invalid media and strip metadata by re-encoding
+ok 2 - uploads reject invalid media and strip metadata by re-encoding
+  ---
+  duration_ms: 1835.0084
+  type: 'test'
+  ...
+# Subtest: events require manager privileges and registration toggles safely
+ok 3 - events require manager privileges and registration toggles safely
+  ---
+  duration_ms: 400.0686
+  type: 'test'
+  ...
+# Subtest: guests and unverified accounts cannot read campus content
+ok 4 - guests and unverified accounts cannot read campus content
+  ---
+  duration_ms: 1001.3145
+  type: 'test'
+  ...
+# [2026-09-08T18:47:25.061Z]  @firebase/firestore: Firestore (11.10.0): GrpcConnection RPC 'Write' stream 0x8dc1d18c error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# false for 'create' @ L28, false for 'update' @ L28
+# [2026-09-08T18:47:25.072Z]  @firebase/firestore: Firestore (11.10.0): GrpcConnection RPC 'Write' stream 0x8dc1d18d error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# false for 'create' @ L28, false for 'update' @ L28
+# Subtest: active member reads feed but cannot write or promote themselves
+ok 5 - active member reads feed but cannot write or promote themselves
+  ---
+  duration_ms: 123.6844
+  type: 'test'
+  ...
+# Subtest: server profile role grants moderation visibility; suspended members lose read access
+ok 6 - server profile role grants moderation visibility; suspended members lose read access
+  ---
+  duration_ms: 62.1181
+  type: 'test'
+  ...
+# Subtest: notifications and event registrations are private
+ok 7 - notifications and event registrations are private
+  ---
+  duration_ms: 109.8549
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 10639.2299
++  Script exited successfully (code 0)
+i  emulators: Shutting down emulators.
+i  firestore: Stopping Firestore Emulator
+!  Firestore Emulator has exited upon receiving signal: SIGINT
+i  auth: Stopping Authentication Emulator
+i  storage: Stopping Storage Emulator
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator

@@ -44,7 +44,7 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
-      await tester.pumpWidget(const StudentConnectApp());
+      await tester.pumpWidget(const StudentConnectApp(allowPreview: true));
       await tester.pumpAndSettle();
       expect(find.text('Welcome back.'), findsOneWidget);
       await tester.ensureVisible(find.text('Explore local preview'));
@@ -56,6 +56,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('There’s a place for you.'), findsOneWidget);
       await tester.enterText(find.byType(TextField).first, 'Design');
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
       expect(find.text('The Design Collective'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('nav-events')));

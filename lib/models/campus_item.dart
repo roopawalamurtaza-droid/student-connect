@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 /// A typed document envelope shared by the campus collections.
 class CampusItem {
   const CampusItem(this.id, this.data);
@@ -12,7 +10,10 @@ class CampusItem {
       (data[key] as List?)?.whereType<String>().toList() ?? [];
   DateTime date(String key) {
     final value = data[key];
-    if (value is Timestamp) return value.toDate();
+    if (value is String) {
+      return DateTime.tryParse(value)?.toLocal() ??
+          DateTime.fromMillisecondsSinceEpoch(0);
+    }
     if (value is DateTime) return value;
     if (value is num) return DateTime.fromMillisecondsSinceEpoch(value.toInt());
     return DateTime.fromMillisecondsSinceEpoch(0);
@@ -20,7 +21,13 @@ class CampusItem {
 
   String get name => text('name');
   String get role => text('role');
-  bool get isModerator => ['moderator', 'administrator'].contains(role);
-  bool get canManage =>
-      ['representative', 'moderator', 'administrator'].contains(role);
+  bool get isModerator =>
+      ['moderator', 'faculty', 'admin', 'super_admin'].contains(role);
+  bool get canManage => [
+    'club_admin',
+    'moderator',
+    'faculty',
+    'admin',
+    'super_admin',
+  ].contains(role);
 }

@@ -1,10 +1,19 @@
+Resolving dependencies...
+Downloading packages...
+  material_color_utilities 0.13.0 (0.13.1 available)
+  meta 1.18.3 (1.19.0 available)
+  test_api 0.7.12 (0.7.14 available)
+  vector_math 2.4.0 (2.4.2 available)
+Got dependencies!
+4 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
 Running Gradle task 'assembleDebug'...                          
 WARNING: A restricted method in java.lang.System has been called
 WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/Admin/.gradle/wrapper/dists/gradle-9.3.1-all/9ot9r568e8zfvvd4mn8rbu1j0/gradle-9.3.1/lib/native-platform-0.22-milestone-29.jar)
 WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
 WARNING: Restricted methods will be blocked in a future release unless native access is enabled
 
-WARNING: Your app uses the following plugins that apply Kotlin Gradle Plugin (KGP): cloud_functions, firebase_analytics, firebase_app_check, firebase_auth, firebase_core, firebase_crashlytics, firebase_storage
+WARNING: Your app uses the following plugins that apply Kotlin Gradle Plugin (KGP): firebase_analytics, firebase_core, firebase_crashlytics
 Future versions of Flutter will fail to build if your app uses plugins that apply KGP.
 
 Please check the changelogs of these plugins and upgrade to a version that supports Built-in Kotlin.
@@ -12,16 +21,5 @@ If no such version exists, report the issue to the plugin. If necessary, here is
 an issue against a plugin: https://docs.flutter.dev/release/breaking-changes/migrate-to-built-in-kotlin/for-app-developers#report-incompatible-kotlin-gradle-plugin-usage-to-plugin-authors
 
 If you are a plugin author, please migrate your plugin to Built-in Kotlin using this guide: https://docs.flutter.dev/release/breaking-changes/migrate-to-built-in-kotlin/for-plugin-authors
-Checking the license for package Android SDK Platform 34 in C:\Users\Admin\AppData\Local\Android\Sdk\licenses
-License for package Android SDK Platform 34 accepted.
-Preparing "Install Android SDK Platform 34 (revision 3)".
-"Install Android SDK Platform 34 (revision 3)" ready.
-Installing Android SDK Platform 34 in C:\Users\Admin\AppData\Local\Android\Sdk\platforms\android-34
-"Install Android SDK Platform 34 (revision 3)" complete.
-"Install Android SDK Platform 34 (revision 3)" finished.
-Note: C:\Users\Admin\AppData\Local\Pub\Cache\hosted\pub.dev\cloud_firestore-6.9.0\android\src\main\java\io\flutter\plugins\firebase\firestore\utils\PipelineStageHandlers.java uses unchecked or unsafe operations.
-Note: Recompile with -Xlint:unchecked for details.
-Note: Some input files use or override a deprecated API.
-Note: Recompile with -Xlint:deprecation for details.
-Running Gradle task 'assembleDebug'...                            287.2s
+Running Gradle task 'assembleDebug'...                             16.5s
 √ Built build\app\outputs\flutter-apk\app-debug.apk

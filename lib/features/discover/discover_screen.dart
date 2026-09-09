@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../models/campus_item.dart';
 import '../../repositories/campus_repository.dart';
 import '../../widgets/common.dart';
+import '../../widgets/paged_items.dart';
 import '../feed/feed_screen.dart';
 import '../feed/post_editor.dart';
 import '../events/events_screen.dart';
@@ -17,6 +20,13 @@ class DiscoverScreen extends StatefulWidget {
 
 class _DiscoverScreenState extends State<DiscoverScreen> {
   String query = '', category = 'communities';
+  Timer? debounce;
+  @override
+  void dispose() {
+    debounce?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -27,7 +37,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         'Meet a collaborator. Find a club. Try something new.',
       ),
       TextField(
-        onChanged: (text) => setState(() => query = text.toLowerCase()),
+        onChanged: (text) {
+          debounce?.cancel();
+          debounce = Timer(const Duration(milliseconds: 350), () {
+            if (mounted) setState(() => query = text.trim().toLowerCase());
+          });
+        },
         decoration: const InputDecoration(
           prefixIcon: Icon(Icons.search),
           hintText: 'Search people, communities, events, and posts',
@@ -55,23 +70,27 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       ),
       const SizedBox(height: 8),
       const Text(
-        'Searches the current results (up to 200 per category).',
+        'Search by name, event title, or post text.',
         style: TextStyle(fontSize: 11),
       ),
       const SizedBox(height: 20),
-      Items(
+      PagedItems(
         repository: widget.repository,
-        path: category,
+        path: widget.repository.isPreview
+            ? category
+            : Uri(path: category, queryParameters: {'q': query}).toString(),
         builder: (all) {
-          final items = all
-              .where(
-                (item) => item.data.values
-                    .whereType<String>()
-                    .join(' ')
-                    .toLowerCase()
-                    .contains(query),
-              )
-              .toList();
+          final items = widget.repository.isPreview
+              ? all
+                    .where(
+                      (item) => item.data.values
+                          .whereType<String>()
+                          .join(' ')
+                          .toLowerCase()
+                          .contains(query),
+                    )
+                    .toList()
+              : all;
           if (items.isEmpty) {
             return const EmptyState(
               icon: Icons.search_off,
@@ -210,6 +229,14 @@ class CommunityCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(item.text('description')),
+          if (item.text('imagePath').isNotEmpty) ...[
+            const SizedBox(height: 16),
+            CampusImage(
+              repository: repository,
+              path: item.text('imagePath'),
+              height: 150,
+            ),
+          ],
           const SizedBox(height: 20),
           Wrap(
             spacing: 12,
@@ -253,9 +280,14 @@ class CommunityCard extends StatelessWidget {
                                     ),
                             ),
                             const SizedBox(height: 24),
-                            Items(
+                            PagedItems(
                               repository: repository,
-                              path: 'posts',
+                              path: repository.isPreview
+                                  ? 'posts'
+                                  : Uri(
+                                      path: 'posts',
+                                      queryParameters: {'community': item.id},
+                                    ).toString(),
                               builder: (posts) => Column(
                                 children: posts
                                     .where(

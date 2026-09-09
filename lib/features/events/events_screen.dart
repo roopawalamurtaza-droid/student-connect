@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../models/campus_item.dart';
 import '../../repositories/campus_repository.dart';
 import '../../widgets/common.dart';
+import '../../widgets/paged_items.dart';
 import '../../theme/app_theme.dart';
 
 class EventsScreen extends StatelessWidget {
@@ -19,7 +20,7 @@ class EventsScreen extends StatelessWidget {
         'Be there. Be part of it.',
         'Workshops, meetups, and moments worth showing up for.',
       ),
-      Items(
+      PagedItems(
         repository: repository,
         path: 'events',
         builder: (items) => items.isEmpty
@@ -67,6 +68,12 @@ class EventCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (event.text('bannerPath').isNotEmpty)
+            CampusImage(
+              repository: repository,
+              path: event.text('bannerPath'),
+              height: 160,
+            ),
           Container(
             height: 130,
             width: double.infinity,

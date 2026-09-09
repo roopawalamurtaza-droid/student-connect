@@ -1,0 +1,5 @@
+running 2 tests from ./supabase/tests/image_test.ts
+valid PNG is decoded, resized and re-encoded as JPEG ... ok (170ms)
+malformed and oversized images are rejected ... ok (627µs)
+
+ok | 2 passed | 0 failed (178ms)

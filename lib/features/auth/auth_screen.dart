@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../repositories/auth_repository.dart';
+import '../../services/auth_service.dart';
+import 'auth_view_model.dart';
 
 import '../../core/config.dart';
 import '../../theme/app_theme.dart';
@@ -8,13 +12,12 @@ import '../../widgets/common.dart';
 class AuthScreen extends StatefulWidget {
   const AuthScreen({
     super.key,
-    required this.onPreview,
+    this.onPreview,
     required this.onTheme,
-    this.user,
     this.error,
   });
-  final VoidCallback onPreview, onTheme;
-  final User? user;
+  final VoidCallback? onPreview;
+  final VoidCallback onTheme;
   final String? error;
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -23,9 +26,26 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen> {
   final email = TextEditingController(), password = TextEditingController();
   final form = GlobalKey<FormState>();
+  late final AuthViewModel? model = AppConfig.supabaseEnabled
+      ? AuthViewModel(
+          AuthRepository(SupabaseAuthService(Supabase.instance.client)),
+        )
+      : null;
+  @override
+  void initState() {
+    super.initState();
+    model?.addListener(_changed);
+  }
+
+  void _changed() {
+    if (mounted) setState(() {});
+  }
+
   bool register = false, hidden = true;
   @override
   void dispose() {
+    model?.removeListener(_changed);
+    model?.dispose();
     email.dispose();
     password.dispose();
     super.dispose();
@@ -33,23 +53,12 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Future<void> authenticate() async {
     if (!form.currentState!.validate()) return;
-    if (register) {
-      final result = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email.text.trim(),
-        password: password.text,
-      );
-      await result.user!.sendEmailVerification();
-    } else {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email.text.trim(),
-        password: password.text,
-      );
-    }
+    await model!.authenticate(email.text, password.text, register: register);
   }
 
   @override
   Widget build(BuildContext context) {
-    final connected = AppConfig.firebaseEnabled && widget.error == null;
+    final connected = AppConfig.supabaseEnabled && widget.error == null;
     return Scaffold(
       body: SafeArea(
         child: LayoutBuilder(
@@ -159,7 +168,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                           const SizedBox(height: 42),
                           Text(
-                            widget.user != null
+                            model?.pendingEmail != null
                                 ? 'Check your inbox'
                                 : register
                                 ? 'Find your place.'
@@ -168,8 +177,8 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            widget.user != null
-                                ? 'Verify ${widget.user!.email} to join your campus.'
+                            model?.pendingEmail != null
+                                ? 'Verify ${model!.pendingEmail} to join your campus.'
                                 : register
                                 ? 'Your university email is your way in.'
                                 : 'Good to see you. Let’s see what’s happening on campus.',
@@ -181,31 +190,19 @@ class _AuthScreenState extends State<AuthScreen> {
                             ),
                           ),
                           const SizedBox(height: 30),
-                          if (widget.user != null) ...[
+                          if (model?.pendingEmail != null) ...[
                             ActionButton(
-                              label: 'I’ve verified my email',
+                              label: 'Continue to sign in',
                               onPressed: () async {
-                                await widget.user!.reload();
-                                await FirebaseAuth.instance.currentUser!
-                                    .getIdToken(true);
-                                if (FirebaseAuth
-                                            .instance
-                                            .currentUser
-                                            ?.emailVerified !=
-                                        true &&
-                                    context.mounted) {
-                                  showMessage(
-                                    context,
-                                    'Please open the verification link in your email first.',
-                                  );
-                                }
+                                model!.backToSignIn();
+                                setState(() => register = false);
                               },
                             ),
                             const SizedBox(height: 12),
                             ActionButton(
                               label: 'Resend verification email',
                               onPressed: () async {
-                                await widget.user!.sendEmailVerification();
+                                await model!.resend();
                                 if (context.mounted) {
                                   showMessage(
                                     context,
@@ -213,10 +210,6 @@ class _AuthScreenState extends State<AuthScreen> {
                                   );
                                 }
                               },
-                            ),
-                            TextButton(
-                              onPressed: () => FirebaseAuth.instance.signOut(),
-                              child: const Text('Use a different account'),
                             ),
                           ] else ...[
                             if (!connected)
@@ -229,7 +222,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
-                                  widget.error ?? 'Your campus is not connected yet. Explore the local preview below. No account is created, and changes reset when you leave.',
+                                  widget.error ?? 'Student Connect is not configured on this device. Contact your campus administrator.',
                                 ),
                               ),
                             if (connected)
@@ -312,10 +305,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                             'Enter your email above first.',
                                           );
                                         }
-                                        await FirebaseAuth.instance
-                                            .sendPasswordResetEmail(
-                                              email: email.text.trim(),
-                                            );
+                                        await model!.forgot(email.text);
                                         if (context.mounted) {
                                           showMessage(
                                             context,
@@ -328,14 +318,15 @@ class _AuthScreenState extends State<AuthScreen> {
                                 ),
                               ),
                             const SizedBox(height: 24),
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: widget.onPreview,
-                                icon: const Icon(Icons.explore_outlined),
-                                label: const Text('Explore local preview'),
+                            if (widget.onPreview != null)
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: widget.onPreview,
+                                  icon: const Icon(Icons.explore_outlined),
+                                  label: const Text('Explore local preview'),
+                                ),
                               ),
-                            ),
                           ],
                           const SizedBox(height: 32),
                           const Text(

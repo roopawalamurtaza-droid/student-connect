@@ -7,6 +7,8 @@ import '../../models/campus_item.dart';
 import '../../repositories/campus_repository.dart';
 import '../../widgets/common.dart';
 import '../../theme/app_theme.dart';
+import 'account_controls.dart';
+import '../feed/saved_posts_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key, required this.repository, required this.me});
@@ -73,6 +75,18 @@ class ProfileScreen extends StatelessWidget {
       ),
       const SizedBox(height: 24),
       ProfileEditor(key: ValueKey(me.id), repository: repository, profile: me),
+      if (!repository.isPreview)
+        TextButton.icon(
+          icon: const Icon(Icons.bookmark_outline),
+          label: const Text('Saved posts'),
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute<void>(
+              builder: (_) => SavedPostsScreen(repository: repository, me: me),
+            ),
+          ),
+        ),
+      if (!repository.isPreview) AccountControls(repository: repository),
     ],
   );
 }

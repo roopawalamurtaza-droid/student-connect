@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
 import '../core/config.dart';
@@ -12,7 +13,9 @@ class NotificationService {
       (defaultTargetPlatform == TargetPlatform.android ||
           defaultTargetPlatform == TargetPlatform.iOS);
   static StreamSubscription<String>? listen(CampusRepository repository) {
-    if (repository.isPreview || !nativeSupported) return null;
+    if (repository.isPreview || !nativeSupported || Firebase.apps.isEmpty) {
+      return null;
+    }
     _restore(repository);
     return FirebaseMessaging.instance.onTokenRefresh.listen((token) async {
       try {
@@ -41,6 +44,11 @@ class NotificationService {
   }
 
   static Future<void> enable(CampusRepository repository) async {
+    if (Firebase.apps.isEmpty) {
+      throw StateError(
+        'Push notifications are not connected yet. Your in-app notifications are available.',
+      );
+    }
     if (repository.isPreview) {
       throw StateError(
         'Push notifications require your connected university account.',
@@ -65,10 +73,14 @@ class NotificationService {
   }
 
   static Future<void> unregister(CampusRepository repository) async {
-    if (repository.isPreview || !nativeSupported) return;
+    if (repository.isPreview || !nativeSupported || Firebase.apps.isEmpty) {
+      return;
+    }
     final token = await FirebaseMessaging.instance.getToken();
     try {
-      if (token != null) await repository.mutate('removeToken', {'token': token});
+      if (token != null) {
+        await repository.mutate('removeToken', {'token': token});
+      }
     } finally {
       await FirebaseMessaging.instance.deleteToken();
     }

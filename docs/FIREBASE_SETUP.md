@@ -1,3 +1,7 @@
+# Archived Firebase data-backend instructions
+
+Supabase now owns identity and application data. Do not follow the old Auth/Firestore setup below. Use supabase/README.md. Firebase is optional for push, crash reports and analytics only.
+
 # Connect Student Connect to Firebase
 
 No Firebase project, university email domain, cloud deployment, or real user account was created during this task. The app runs in a clearly labeled local preview until these steps are completed.

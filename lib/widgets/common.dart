@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/campus_item.dart';
 import '../repositories/campus_repository.dart';
@@ -9,10 +10,34 @@ void showMessage(BuildContext context, String text) =>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(text), behavior: SnackBarBehavior.floating),
     );
-String readableError(Object error) => error
-    .toString()
-    .replaceFirst(RegExp(r'^\[[^\]]+\]\s*'), '')
-    .replaceFirst('Bad state: ', '');
+String readableError(Object error) {
+  if (error is AuthException) {
+    if (error.code == 'email_address_not_authorized') {
+      return 'Email delivery is still being set up. Contact your campus administrator.';
+    }
+    return error.message;
+  }
+  if (error is PostgrestException) {
+    if (error.code == '23505') {
+      return 'That enrollment number or name is already in use.';
+    }
+    if (error.code == '23514' || error.code == '23502') {
+      return 'Check the required fields and try again.';
+    }
+    return error.message;
+  }
+  if (error is FunctionException) {
+    final details = error.details;
+    if (details is Map<String, dynamic> && details['error'] is String) {
+      return details['error'] as String;
+    }
+    return 'This request could not be completed. Please try again.';
+  }
+  return error
+      .toString()
+      .replaceFirst(RegExp(r'^\[[^\]]+\]\s*'), '')
+      .replaceFirst('Bad state: ', '');
+}
 
 class ActionButton extends StatefulWidget {
   const ActionButton({

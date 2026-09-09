@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import 'dart:convert';
+
+import 'package:image_picker/image_picker.dart';
+
 import '../../models/campus_item.dart';
 import '../../repositories/campus_repository.dart';
 import '../../widgets/common.dart';
+import '../../widgets/paged_items.dart';
 
 class AdminScreen extends StatelessWidget {
   const AdminScreen({super.key, required this.repository, required this.me});
@@ -48,7 +53,7 @@ class AdminScreen extends StatelessWidget {
         'Manage events',
         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
       ),
-      Items(
+      PagedItems(
         repository: repository,
         path: 'events',
         builder: (events) => Column(
@@ -95,7 +100,7 @@ class AdminScreen extends StatelessWidget {
           'Reports',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        Items(
+        PagedItems(
           repository: repository,
           path: 'reports',
           builder: (reports) => Column(
@@ -117,7 +122,7 @@ class AdminScreen extends StatelessWidget {
                               ),
                             ),
                           Text(
-                            '${r.text('kind')} · ${r.text('id')}',
+                            '${r.text('kind')} · ${r.text('targetId')}',
                             style: const TextStyle(fontSize: 12),
                           ),
                           const SizedBox(height: 12),
@@ -142,7 +147,7 @@ class AdminScreen extends StatelessWidget {
                                       'the reported post',
                                     )) {
                                       await repository.mutate('deletePost', {
-                                        'id': r.text('id'),
+                                        'id': r.text('targetId'),
                                       });
                                     }
                                   },
@@ -187,13 +192,13 @@ class AdminScreen extends StatelessWidget {
           ),
         ),
       ],
-      if (me.role == 'administrator') ...[
+      if (['admin', 'super_admin'].contains(me.role)) ...[
         const Divider(height: 32),
         const Text(
           'People & permissions',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        Items(
+        PagedItems(
           repository: repository,
           path: 'users',
           builder: (users) => Column(
@@ -231,9 +236,12 @@ class AdminScreen extends StatelessWidget {
                                 itemBuilder: (_) =>
                                     [
                                           'student',
-                                          'representative',
+                                          'club_admin',
+                                          'faculty',
                                           'moderator',
-                                          'administrator',
+                                          'admin',
+                                          if (me.role == 'super_admin')
+                                            'super_admin',
                                         ]
                                         .map(
                                           (r) => PopupMenuItem(
@@ -307,6 +315,7 @@ class _ManageEditorState extends State<ManageEditor> {
       widget.item?.date('startsAt') ??
       DateTime.now().add(const Duration(days: 1));
   String kind = 'Club';
+  String? imagePath;
   @override
   void dispose() {
     title.dispose();
@@ -324,6 +333,42 @@ class _ManageEditorState extends State<ManageEditor> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (!widget.repository.isPreview &&
+                widget.kind != 'announcement') ...[
+              ActionButton(
+                label: imagePath == null ? 'Add image' : 'Replace image',
+                icon: Icons.image_outlined,
+                onPressed: () async {
+                  final image = await ImagePicker().pickImage(
+                    source: ImageSource.gallery,
+                    maxWidth: 1600,
+                    maxHeight: 1600,
+                    imageQuality: 85,
+                  );
+                  if (image == null) return;
+                  if (await image.length() > 3 * 1024 * 1024) {
+                    throw StateError('Choose an image smaller than 3 MB.');
+                  }
+                  final result = await widget.repository.mutate('uploadImage', {
+                    'purpose': widget.kind == 'event' ? 'event' : 'community',
+                    'base64': base64Encode(await image.readAsBytes()),
+                  });
+                  if (mounted) {
+                    setState(() => imagePath = result['path'] as String);
+                  }
+                },
+              ),
+              if (imagePath != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: CampusImage(
+                    repository: widget.repository,
+                    path: imagePath!,
+                    height: 120,
+                  ),
+                ),
+              const SizedBox(height: 12),
+            ],
             TextField(
               controller: title,
               maxLength: 100,
@@ -402,7 +447,7 @@ class _ManageEditorState extends State<ManageEditor> {
             if (location.text.trim().isEmpty || date.isBefore(DateTime.now())) {
               throw StateError('Choose a location and future date.');
             }
-            await widget.repository.mutate('saveEvent', {
+            final result = await widget.repository.mutate('saveEvent', {
               'id': widget.item?.id,
               'event': {
                 'title': title.text.trim(),
@@ -412,12 +457,26 @@ class _ManageEditorState extends State<ManageEditor> {
                 'communityId': widget.item?.text('communityId') ?? '',
               },
             });
+            if (imagePath != null) {
+              await widget.repository.mutate('attachMedia', {
+                'id': widget.item?.id ?? result['id'],
+                'kind': 'event',
+                'path': imagePath,
+              });
+            }
           } else if (widget.kind == 'community') {
-            await widget.repository.mutate('saveCommunity', {
+            final result = await widget.repository.mutate('saveCommunity', {
               'name': title.text.trim(),
               'description': body.text.trim(),
               'kind': kind,
             });
+            if (imagePath != null) {
+              await widget.repository.mutate('attachMedia', {
+                'id': result['id'],
+                'kind': 'community',
+                'path': imagePath,
+              });
+            }
           } else {
             await widget.repository.mutate('announce', {
               'title': title.text.trim(),

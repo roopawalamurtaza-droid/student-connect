@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 import '../models/campus_item.dart';
 import '../repositories/campus_repository.dart';
@@ -50,7 +51,7 @@ class _WorkspaceState extends State<Workspace> {
   int selected = 0;
   void go(int index) {
     setState(() => selected = index);
-    if (!widget.repository.isPreview) {
+    if (!widget.repository.isPreview && Firebase.apps.isNotEmpty) {
       FirebaseAnalytics.instance
           .logScreenView(screenName: Destination.values[index].name)
           .catchError((Object _) {});

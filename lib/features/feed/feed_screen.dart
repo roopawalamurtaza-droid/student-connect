@@ -5,6 +5,7 @@ import '../../models/campus_item.dart';
 import '../../repositories/campus_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/paged_items.dart';
 import 'post_editor.dart';
 
 class FeedScreen extends StatelessWidget {
@@ -117,7 +118,7 @@ class FeedScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              Items(
+              PagedItems(
                 repository: repository,
                 path: 'posts',
                 builder: (posts) => posts.isEmpty
@@ -361,6 +362,15 @@ class PostCard extends StatelessWidget {
                   try {
                     if (action == 'report') {
                       await reportItem(context, repository, 'posts', post.id);
+                    } else if (action == 'save') {
+                      await repository.mutate('savePost', {'id': post.id});
+                      if (context.mounted) {
+                        showMessage(context, 'Saved posts updated.');
+                      }
+                    } else if (action == 'block') {
+                      await repository.mutate('blockUser', {
+                        'id': post.text('authorId'),
+                      });
                     } else if (action == 'edit') {
                       if (context.mounted) {
                         Navigator.push(
@@ -388,6 +398,16 @@ class PostCard extends StatelessWidget {
                   }
                 },
                 itemBuilder: (_) => [
+                  if (!repository.isPreview)
+                    const PopupMenuItem(
+                      value: 'save',
+                      child: Text('Save / unsave post'),
+                    ),
+                  if (!repository.isPreview && post.text('authorId') != me.id)
+                    const PopupMenuItem(
+                      value: 'block',
+                      child: Text('Block this student'),
+                    ),
                   const PopupMenuItem(
                     value: 'report',
                     child: Text('Report post'),
@@ -440,7 +460,13 @@ class PostCard extends StatelessWidget {
                         : Icons.favorite_outline,
                     size: 19,
                   ),
-                  label: Text('${likes.length} likes'),
+                  label: Text(
+                    '${repository.isPreview
+                        ? likes.length
+                        : likes.isEmpty
+                        ? 0
+                        : likes.first.number('total')} likes',
+                  ),
                 ),
               ),
               TextButton.icon(

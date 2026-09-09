@@ -1,0 +1,29 @@
+project_id = "student_connect"
+[api]
+enabled = true
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 500
+[db]
+major_version = 17
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173/", "http://127.0.0.1:5173/", "app.studentconnect://auth/callback", "http://localhost:5173/?recovery=1", "http://127.0.0.1:5173/?recovery=1", "app.studentconnect://auth/callback?recovery=1"]
+enable_signup = true
+enable_anonymous_sign_ins = false
+minimum_password_length = 10
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+max_frequency = "60s"
+[functions.campus-media]
+verify_jwt = false
+[auth.hook.before_user_created]
+enabled = true
+uri = "pg-functions://postgres/public/before_user_created"
+[functions.delete-account]
+verify_jwt = false
+[functions.dispatch-push]
+verify_jwt = false

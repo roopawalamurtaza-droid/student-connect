@@ -1,5 +1,19 @@
+import 'package:flutter/foundation.dart';
+
 class AppConfig {
+  static const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+  static const supabaseKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
+  static bool get supabaseEnabled =>
+      supabaseUrl.isNotEmpty && supabaseKey.isNotEmpty;
+  static const allowPreview = bool.fromEnvironment('ENABLE_LOCAL_PREVIEW');
+  static String get authRedirect => kIsWeb
+      ? Uri.base.replace(query: '', fragment: '').toString()
+      : 'app.studentconnect://auth/callback';
   static const firebaseEnabled = bool.fromEnvironment('FIREBASE_ENABLED');
+  static String get passwordRedirect =>
+      Uri.parse(authRedirect)
+          .replace(queryParameters: {'recovery': '1'})
+          .toString();
   static const useEmulators = bool.fromEnvironment('USE_EMULATORS');
   static const emulatorHost = String.fromEnvironment(
     'EMULATOR_HOST',
@@ -7,6 +21,7 @@ class AppConfig {
   );
   static const emailDomains = String.fromEnvironment(
     'UNIVERSITY_EMAIL_DOMAINS',
+    defaultValue: 'ppsu.ac.in',
   );
   static const recaptchaKey = String.fromEnvironment('RECAPTCHA_SITE_KEY');
   static const vapidKey = String.fromEnvironment('FCM_VAPID_KEY');
@@ -16,5 +31,5 @@ class AppConfig {
           .map((d) => d.trim().toLowerCase())
           .where((d) => d.isNotEmpty)
           .contains(email.trim().toLowerCase().split('@').last) &&
-      email.contains('@');
+      RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email.trim());
 }

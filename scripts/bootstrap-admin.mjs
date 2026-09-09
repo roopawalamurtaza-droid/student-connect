@@ -1,3 +1,5 @@
+// ARCHIVED: Supabase owns roles. Do not run this old Firebase admin bootstrap.
+throw new Error("Use the Supabase administrator setup in supabase/README.md instead.");
 // Run only in a trusted environment using Application Default Credentials.
 // Never put a service account private key in the Flutter application.
 import {createRequire} from 'node:module';

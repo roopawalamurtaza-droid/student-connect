@@ -1,6 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../services/supabase_data_service.dart';
+import '../features/auth/reset_password_screen.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/config.dart';
@@ -8,14 +13,20 @@ import '../features/auth/auth_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../models/campus_item.dart';
 import '../repositories/campus_repository.dart';
-import '../repositories/firebase_repository.dart';
+import '../repositories/supabase_repository.dart';
 import '../repositories/preview_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 import 'workspace.dart';
 
 class StudentConnectApp extends StatefulWidget {
-  const StudentConnectApp({super.key, this.startupError});
+  const StudentConnectApp({
+    super.key,
+    this.startupError,
+    this.initialRecovery = false,
+    this.allowPreview = AppConfig.allowPreview,
+  });
+  final bool allowPreview, initialRecovery;
   final String? startupError;
   @override
   State<StudentConnectApp> createState() => _StudentConnectAppState();
@@ -24,10 +35,36 @@ class StudentConnectApp extends StatefulWidget {
 class _StudentConnectAppState extends State<StudentConnectApp> {
   ThemeMode mode = ThemeMode.light;
   CampusRepository? preview;
+  final navigatorKey = GlobalKey<NavigatorState>();
+  StreamSubscription<AuthState>? authSubscription;
+  late bool recoveryPending = widget.initialRecovery;
+  String? previousUser;
+
   @override
   void initState() {
     super.initState();
     _loadTheme();
+    if (AppConfig.supabaseEnabled && widget.startupError == null) {
+      previousUser = Supabase.instance.client.auth.currentUser?.id;
+      authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen(
+        (state) {
+          final changed = previousUser != state.session?.user.id;
+          previousUser = state.session?.user.id;
+          if (state.event == AuthChangeEvent.passwordRecovery) {
+            recoveryPending = true;
+          }
+          if (state.event == AuthChangeEvent.signedOut) recoveryPending = false;
+          if (changed || state.event == AuthChangeEvent.passwordRecovery) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                navigatorKey.currentState?.popUntil((route) => route.isFirst);
+              }
+            });
+          }
+        },
+        onError: (Object error, StackTrace stack) {},
+      );
+    }
   }
 
   Future<void> _loadTheme() async {
@@ -51,12 +88,14 @@ class _StudentConnectAppState extends State<StudentConnectApp> {
 
   @override
   void dispose() {
+    authSubscription?.cancel();
     preview?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) => MaterialApp(
+    navigatorKey: navigatorKey,
     title: 'Student Connect',
     debugShowCheckedModeBanner: false,
     theme: AppTheme.build(Brightness.light),
@@ -73,32 +112,43 @@ class _StudentConnectAppState extends State<StudentConnectApp> {
               });
             },
           )
-        : AppConfig.firebaseEnabled && widget.startupError == null
-        ? StreamBuilder<User?>(
-            stream: FirebaseAuth.instance.userChanges(),
+        : AppConfig.supabaseEnabled && widget.startupError == null
+        ? StreamBuilder<AuthState>(
+            stream: Supabase.instance.client.auth.onAuthStateChange,
+            initialData: AuthState(
+              AuthChangeEvent.initialSession,
+              Supabase.instance.client.auth.currentSession,
+            ),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Scaffold(
                   body: Center(child: CircularProgressIndicator()),
                 );
               }
-              final user = snapshot.data;
-              if (user == null || !user.emailVerified) {
-                return AuthScreen(
-                  onPreview: _preview,
-                  onTheme: toggleTheme,
-                  user: user,
+              final state = snapshot.data;
+              final user = state?.session?.user;
+              if (recoveryPending && user != null) {
+                return ResetPasswordScreen(
+                  onDone: () => setState(() {
+                    recoveryPending = false;
+                  }),
                 );
               }
-              return FirebaseSession(
-                key: ValueKey(user.uid),
-                uid: user.uid,
+              if (user == null || user.emailConfirmedAt == null) {
+                return AuthScreen(
+                  onPreview: widget.allowPreview ? _preview : null,
+                  onTheme: toggleTheme,
+                );
+              }
+              return SupabaseSession(
+                key: ValueKey(user.id),
+                uid: user.id,
                 onTheme: toggleTheme,
               );
             },
           )
         : AuthScreen(
-            onPreview: _preview,
+            onPreview: widget.allowPreview ? _preview : null,
             onTheme: toggleTheme,
             error: widget.startupError,
           ),
@@ -106,16 +156,19 @@ class _StudentConnectAppState extends State<StudentConnectApp> {
   void _preview() => setState(() => preview = PreviewRepository());
 }
 
-class FirebaseSession extends StatefulWidget {
-  const FirebaseSession({super.key, required this.uid, required this.onTheme});
+class SupabaseSession extends StatefulWidget {
+  const SupabaseSession({super.key, required this.uid, required this.onTheme});
   final String uid;
   final VoidCallback onTheme;
   @override
-  State<FirebaseSession> createState() => _FirebaseSessionState();
+  State<SupabaseSession> createState() => _SupabaseSessionState();
 }
 
-class _FirebaseSessionState extends State<FirebaseSession> {
-  late final repository = FirebaseCampusRepository(widget.uid);
+class _SupabaseSessionState extends State<SupabaseSession> {
+  late final repository = SupabaseCampusRepository(
+    widget.uid,
+    SupabaseDataService(Supabase.instance.client),
+  );
   @override
   void dispose() {
     repository.dispose();
@@ -126,7 +179,7 @@ class _FirebaseSessionState extends State<FirebaseSession> {
   Widget build(BuildContext context) => SessionGate(
     repository: repository,
     onTheme: widget.onTheme,
-    onExit: () => FirebaseAuth.instance.signOut(),
+    onExit: () => Supabase.instance.client.auth.signOut(),
   );
 }
 
@@ -145,14 +198,9 @@ class SessionGate extends StatefulWidget {
 }
 
 class _SessionGateState extends State<SessionGate> {
-  late final stream = widget.repository.isPreview
-      ? widget.repository.watch('users')
-      : FirebaseFirestore.instance
-            .doc('users/${widget.repository.uid}')
-            .snapshots()
-            .map(
-              (d) => d.exists ? [CampusItem(d.id, d.data()!)] : <CampusItem>[],
-            );
+  late final stream = widget.repository.watch(
+    widget.repository.isPreview ? 'users' : 'profile',
+  );
   @override
   Widget build(BuildContext context) => StreamBuilder<List<CampusItem>>(
     stream: stream,

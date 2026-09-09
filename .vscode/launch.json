@@ -1,1 +1,23 @@
-{"version":"0.2.0","configurations":[{"name":"Student Connect · local preview","request":"launch","type":"dart","program":"lib/main.dart"}]}
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Student Connect · Supabase",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define-from-file=config/supabase.local.json"
+      ]
+    },
+    {
+      "name": "Student Connect · existing local preview",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define=ENABLE_LOCAL_PREVIEW=true"
+      ]
+    }
+  ]
+}

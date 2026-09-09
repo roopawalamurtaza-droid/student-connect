@@ -1,0 +1,64 @@
+TAP version 13
+# Subtest: verified domain is required even when bypassing the client
+ok 1 - verified domain is required even when bypassing the client
+  ---
+  duration_ms: 1542.4126
+  type: 'test'
+  ...
+# Subtest: client cannot directly write profiles or promote itself
+ok 2 - client cannot directly write profiles or promote itself
+  ---
+  duration_ms: 8.3349
+  type: 'test'
+  ...
+# Subtest: post ownership, comments, notifications and blocking
+ok 3 - post ownership, comments, notifications and blocking
+  ---
+  duration_ms: 40.6145
+  type: 'test'
+  ...
+# Subtest: event management and private registration
+ok 4 - event management and private registration
+  ---
+  duration_ms: 16.3417
+  type: 'test'
+  ...
+# Subtest: suspension applies immediately to reads and writes
+ok 5 - suspension applies immediately to reads and writes
+  ---
+  duration_ms: 3.7775
+  type: 'test'
+  ...
+# Subtest: private server RPCs cannot be called by students
+ok 6 - private server RPCs cannot be called by students
+  ---
+  duration_ms: 2.5835
+  type: 'test'
+  ...
+# Subtest: draft media stays private until attached to a visible post
+ok 7 - draft media stays private until attached to a visible post
+  ---
+  duration_ms: 13.9649
+  type: 'test'
+  ...
+# Subtest: signup hook rejects unapproved and subdomain spoofing
+ok 8 - signup hook rejects unapproved and subdomain spoofing
+  ---
+  duration_ms: 4.6347
+  type: 'test'
+  ...
+# Subtest: administrator hierarchy and last-admin guard
+ok 9 - administrator hierarchy and last-admin guard
+  ---
+  duration_ms: 7.7971
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1808.1668

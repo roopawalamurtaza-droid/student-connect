@@ -30,7 +30,7 @@
 - Corrected the deployed department name from “Institue of Computer Science” to “Institute of Computer Science” and verified the corrected text in the live app.
 - Flutter analysis reports no issues; all nine Flutter tests, nine database security tests, and four backend validation tests pass.
 - Rebuilt the signed Android APK and AAB successfully and published the latest web build. The deployed `main.dart.js` SHA-256 matches the local release artifact.
-- Three verified users have completed profiles, but all remain students. Administrator assignment awaits the required permission-change confirmation.
+- Three verified users have completed profiles. The approved owner profile is now the first `super_admin`; Supabase persistence and the live Administration menu were both verified.
 - No Android device or device token is currently available, so physical FCM receipt and Crashlytics ingestion cannot yet be verified.
 - Google Play opened at developer-account registration; an account purchase and identity verification are required before internal-track upload.
 - Both event-reminder and push-dispatch cron jobs report their latest run succeeded.

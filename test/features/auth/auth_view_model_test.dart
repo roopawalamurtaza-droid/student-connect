@@ -12,6 +12,7 @@ class PendingAuthRepository implements AuthRepository {
     String email,
     String password, {
     required bool register,
+    String? captchaToken,
   }) => completion.future;
 
   @override

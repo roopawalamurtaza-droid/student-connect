@@ -2,6 +2,9 @@
   "SUPABASE_URL": "https://YOUR_PROJECT.supabase.co",
   "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_REPLACE_ME",
   "UNIVERSITY_EMAIL_DOMAINS": "ppsu.ac.in",
+  "RECAPTCHA_SITE_KEY": "your-cloudflare-turnstile-site-key",
+  "CAPTCHA_BASE_URL": "https://your-production-domain.example",
+  "SUPPORT_EMAIL": "support@your-production-domain.example",
   "ENABLE_LOCAL_PREVIEW": false,
   "FIREBASE_ENABLED": false
 }

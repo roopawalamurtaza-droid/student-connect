@@ -18,8 +18,14 @@ class AuthViewModel extends ChangeNotifier {
     String email,
     String password, {
     required bool register,
+    String? captchaToken,
   }) async {
-    await repository.authenticate(email, password, register: register);
+    await repository.authenticate(
+      email,
+      password,
+      register: register,
+      captchaToken: captchaToken,
+    );
     if (register && !_disposed) {
       pendingEmail = email.trim();
       notifyListeners();
@@ -31,7 +37,9 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> resend() => repository.resend(pendingEmail!);
-  Future<void> forgot(String email) => repository.forgot(email);
+  Future<void> resend({String? captchaToken}) =>
+      repository.resend(pendingEmail!, captchaToken: captchaToken);
+  Future<void> forgot(String email, {String? captchaToken}) =>
+      repository.forgot(email, captchaToken: captchaToken);
   Future<void> reset(String password) => repository.reset(password);
 }

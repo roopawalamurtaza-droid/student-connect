@@ -24,6 +24,11 @@ class AppConfig {
     defaultValue: 'ppsu.ac.in',
   );
   static const recaptchaKey = String.fromEnvironment('RECAPTCHA_SITE_KEY');
+  static const captchaBaseUrl = String.fromEnvironment(
+    'CAPTCHA_BASE_URL',
+    defaultValue: 'https://student-connect-ppsu-2026.web.app',
+  );
+  static const supportEmail = String.fromEnvironment('SUPPORT_EMAIL');
   static const vapidKey = String.fromEnvironment('FCM_VAPID_KEY');
   static bool isUniversityEmail(String email) =>
       emailDomains

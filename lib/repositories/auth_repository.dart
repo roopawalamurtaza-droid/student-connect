@@ -7,12 +7,21 @@ class AuthRepository {
     String email,
     String password, {
     required bool register,
+    String? captchaToken,
   }) => register
-      ? service.register(email.trim().toLowerCase(), password)
-      : service.signIn(email.trim().toLowerCase(), password);
-  Future<void> resend(String email) =>
-      service.resend(email.trim().toLowerCase());
-  Future<void> forgot(String email) =>
-      service.forgot(email.trim().toLowerCase());
+      ? service.register(
+          email.trim().toLowerCase(),
+          password,
+          captchaToken: captchaToken,
+        )
+      : service.signIn(
+          email.trim().toLowerCase(),
+          password,
+          captchaToken: captchaToken,
+        );
+  Future<void> resend(String email, {String? captchaToken}) =>
+      service.resend(email.trim().toLowerCase(), captchaToken: captchaToken);
+  Future<void> forgot(String email, {String? captchaToken}) =>
+      service.forgot(email.trim().toLowerCase(), captchaToken: captchaToken);
   Future<void> reset(String password) => service.reset(password);
 }

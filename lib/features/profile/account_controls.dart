@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../repositories/campus_repository.dart';
 import '../../widgets/common.dart';
+import 'legal_screen.dart';
 
 class AccountControls extends StatelessWidget {
   const AccountControls({super.key, required this.repository});
@@ -41,6 +42,17 @@ class AccountControls extends StatelessWidget {
               ),
       ),
       const Divider(height: 32),
+      ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: const Icon(Icons.policy_outlined),
+        title: const Text('Privacy and community safety'),
+        subtitle: const Text('How data, reports, and account deletion work'),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute<void>(builder: (_) => const LegalScreen()),
+        ),
+      ),
+      const SizedBox(height: 12),
       ActionButton(
         label: 'Delete my account',
         icon: Icons.person_remove_outlined,

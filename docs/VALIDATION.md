@@ -22,5 +22,16 @@
 
 - All seven Flutter tests, nine PostgreSQL security tests, two real image-processing tests, and eight live access checks passed again.
 - The existing signed-in browser session loads the feed, communities, events, profile, saved posts and notifications. Empty states render for collections without content, and saved-post back navigation works. No user content was posted or deleted during these checks.
+
+## 11 September 2026 rollout pass
+
+- Added optional Cloudflare Turnstile token handling to registration, sign-in, verification resend, and password recovery. It remains disabled until the owner creates a Turnstile site and installs the matching private key in Supabase.
+- Added an in-app pilot privacy/safety notice, a public `/privacy.html` notice, acceptable-use rules, reporting/appeal steps, a proposed retention period, and a repeatable two-student acceptance checklist.
+- Corrected the deployed department name from “Institue of Computer Science” to “Institute of Computer Science” and verified the corrected text in the live app.
+- Flutter analysis reports no issues; all nine Flutter tests, nine database security tests, and four backend validation tests pass.
+- Rebuilt the signed Android APK and AAB successfully and published the latest web build. The deployed `main.dart.js` SHA-256 matches the local release artifact.
+- Three verified users have completed profiles, but all remain students. Administrator assignment awaits the required permission-change confirmation.
+- No Android device or device token is currently available, so physical FCM receipt and Crashlytics ingestion cannot yet be verified.
+- Google Play opened at developer-account registration; an account purchase and identity verification are required before internal-track upload.
 - Both event-reminder and push-dispatch cron jobs report their latest run succeeded.
 - This verifies live navigation with one existing account, not fresh sign-up, email receipt, a second user's permissions or real device push delivery. Those acceptance checks remain separate.

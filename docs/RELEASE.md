@@ -40,3 +40,9 @@ References: [Resend with Supabase](https://resend.com/docs/send-with-supabase-sm
 ## Acceptance checks before student rollout
 
 Use an authorized real university account to verify signup, confirmation, onboarding, logout/login, password recovery and account deletion. Use two verified accounts to test interactions and notification privacy. Verify push receipt on a device with permission enabled, plus a Crashlytics test report and Analytics event ingestion. Assign the first administrator only to the approved verified account. iOS signing and APNs still require Apple credentials and Xcode.
+
+Follow the repeatable checklist in [ACCEPTANCE_TEST.md](ACCEPTANCE_TEST.md). The draft privacy, acceptable-use, reporting, and retention terms are in [CAMPUS_POLICIES.md](CAMPUS_POLICIES.md); complete its approval fields before broad rollout.
+
+## CAPTCHA
+
+Student Connect is wired for Cloudflare Turnstile on registration, sign-in, resend, and password reset. Create a Turnstile widget for the production web domain and the configured native `CAPTCHA_BASE_URL`, add its public site key as `RECAPTCHA_SITE_KEY`, then enable Turnstile under Supabase Authentication → Attack Protection using the matching secret key. Enable backend enforcement only after a build containing the public key has been deployed, or authentication will stop working.

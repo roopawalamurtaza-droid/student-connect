@@ -8,4 +8,4 @@ Got dependencies!
 4 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 Analyzing student_connect...                                    
-No issues found! (ran in 9.2s)
+No issues found! (ran in 71.7s)

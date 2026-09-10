@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "934825525905",
+    "project_id": "student-connect-ppsu-2026",
+    "storage_bucket": "student-connect-ppsu-2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:934825525905:android:71fe43de6ad4c0d8e4b530",
+        "android_client_info": {
+          "package_name": "app.studentconnect.student_connect"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAgGhHYxo1dTrwvrfEdP4ZPbWBTTT9CGYQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

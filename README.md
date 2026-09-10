@@ -4,7 +4,11 @@ Existing Flutter campus app, continued in place and migrated to **Supabase** as 
 
 ## Run the connected app
 
-Open this folder in VS Code and select **Student Connect · Supabase**. Or run:
+Open this folder in VS Code and select **Student Connect · Supabase**.
+
+In Android Studio, open the project root `C:\Flutter\student_connect` and choose **Student Connect - Connected** in the Run dropdown. This shared configuration loads the local connection settings. The existing `main.dart` configuration on this PC also includes these arguments. If Android Studio was already open, reopen the project to reload its configurations, then stop and run again; hot reload cannot change build-time connection settings. Running `main.dart` without the configuration arguments intentionally shows the “not configured” screen. Web launches use port 5173 to match the registered authentication redirects.
+
+From a terminal:
 
 ```powershell
 cd C:\Flutter\student_connect
@@ -20,7 +24,7 @@ The ignored local config contains the Supabase URL and public publishable key on
 - Supabase project: https://supabase.com/dashboard/project/afbjuuppjlhiydvzrzdz (Student Connect, Mumbai, Free Practice organization).
 - Dart/Flutter CLI, live MCP tooling, and plugin architecture/analysis/testing guidance are in use. Flutter SDK: C:\Flutter\sdk\flutter.
 - GitHub and Figma accounts are connected. No Figma design file was supplied; the existing visual design is preserved.
-- Firebase CLI is installed. Google authorization is still required; push delivery, Analytics and Crashlytics remain disabled in the local build. No Firebase app data or duplicate authentication is created.
+- Firebase project: https://console.firebase.google.com/project/student-connect-ppsu-2026/overview (Spark, billing disabled). Android, iOS and web registrations and public configuration are included. The local build enables Firebase; Android Crashlytics initializes successfully. Supabase remains the only identity and application-data backend.
 - No callable Product Design or Supabase/Firebase MCP integration was available; the official CLIs are used where applicable.
 
 ## Implemented in the existing UI
@@ -34,7 +38,7 @@ The exact approved email domain is ppsu.ac.in. The Auth signup hook rejects othe
 ## What still needs account setup
 
 1. **Email sender:** configure a custom SMTP provider in Supabase so verification and password-reset messages can reach university addresses. The default mailer only sends to project team members. Real student registration cannot complete until this is supplied; no email verification has been bypassed and no fake verified student was created.
-2. **Firebase authorization:** finish Google sign-in, then register platform apps for optional FCM/Crashlytics/Analytics. The deployed push worker remains closed until server-only credentials and its scheduler are configured. In-app notifications and database event reminders already work independently.
+2. **Telemetry and push validation:** the FCM-only sender is installed in Supabase secrets, with Vault-backed dispatch scheduled every minute when eligible jobs exist. The worker authenticated successfully with an empty queue. Real device delivery still needs a verified student and notification permission; iOS needs APNs credentials. Google Analytics is linked to property 553447807 in the existing Default Account for Firebase. Crash reporting hooks initialize, but crash ingestion is not yet verified.
 3. **First administrator:** after a real university user verifies email and onboards, assign that exact user through the trusted SQL procedure in the backend guide. No administrator was invented from the sample email address.
 4. **Release:** production HTTPS hosting/callbacks, app signing, privacy/retention policy and store accounts. iOS building and APNs validation require a Mac with Xcode and Apple credentials.
 

@@ -1,16 +1,1 @@
-{
-  "hosting": {
-    "public": "build/web",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
-  }
-}
+{"hosting":{"public":"build/web","ignore":["firebase.json","**/.*","**/node_modules/**"],"rewrites":[{"source":"**","destination":"/index.html"}]},"flutter":{"platforms":{"android":{"default":{"projectId":"student-connect-ppsu-2026","appId":"1:934825525905:android:71fe43de6ad4c0d8e4b530","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"student-connect-ppsu-2026","configurations":{"android":"1:934825525905:android:71fe43de6ad4c0d8e4b530","ios":"1:934825525905:ios:3892b218a3760826e4b530","web":"1:934825525905:web:8ae54cbdadf62b4ae4b530"}}}}}}

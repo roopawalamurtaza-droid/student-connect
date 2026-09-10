@@ -6,13 +6,21 @@ class AuthViewModel extends ChangeNotifier {
   AuthViewModel(this.repository);
   final AuthRepository repository;
   String? pendingEmail;
+  bool _disposed = false;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
   Future<void> authenticate(
     String email,
     String password, {
     required bool register,
   }) async {
     await repository.authenticate(email, password, register: register);
-    if (register) {
+    if (register && !_disposed) {
       pendingEmail = email.trim();
       notifyListeners();
     }

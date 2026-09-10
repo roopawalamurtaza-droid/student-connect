@@ -1,10 +1,10 @@
 # Validation — 10 September 2026
 
 - Flutter 3.47.2 / Dart 3.13.2; strict analyzer clean.
-- Seven Flutter tests passed: profile/post/report mapping, university domain matching, existing repository behavior, and mobile/desktop navigation/publishing layouts.
+- Nine Flutter tests passed: profile/post/report mapping, university domain matching, existing repository behavior, mobile/desktop navigation/publishing layouts, and signup completion both before and after screen disposal.
 - Nine PostgreSQL/PGlite security tests passed: verification/domain gates, no role escalation, ownership, notifications, blocking, event permissions/registration privacy, suspension, private RPCs, draft media privacy, signup hook, administrator hierarchy and last-admin retention.
 - Two Deno image tests passed: real PNG decode/resize/JPEG re-encode and unsafe input rejection. All three Edge Functions type-check.
-- Live smoke checks passed for four anonymous table reads denied, three unauthenticated function calls denied, and non-university signup rejected. A later check found one confirmed live account; its verification method has not yet been established. The checks create no verified accounts.
+- Live smoke checks passed for four anonymous table reads denied, three unauthenticated function calls denied, and non-university signup rejected. A later check found one confirmed live account; the owner reports receiving the Supabase verification email. Custom SMTP remains unapproved, and delivery for other students remains unverified. The checks create no verified accounts.
 - Nine migrations applied to the real Mumbai Supabase project. Event reminders run every five minutes; the private push scheduler runs every minute, skipping empty/ineligible queues. Both jobs are active. Three Edge Functions are ACTIVE. Server push credentials are installed in Supabase secrets and Vault; anonymous and authenticated clients cannot execute the dispatcher. Authenticated worker smoke check returned HTTP 200 with zero deliveries.
 - Supabase security advisor: zero ERROR findings; two reviewed WARN findings for intentionally exposed checked SECURITY DEFINER mutation functions.
 - Android debug APK and web build passed. Flutter Doctor reports no issues. Native dependency warnings about future Kotlin/Java changes remain nonblocking.
@@ -16,6 +16,9 @@
 - Full email verification/reset delivery, authenticated multi-user live flows, actual FCM device delivery and Crashlytics crash ingestion remain unverified. SMTP is still required for university onboarding. iOS build/signing and APNs setup require macOS/Xcode and Apple credentials.
 
 ## Latest functional recheck
+
+- Web release published to https://student-connect-ppsu-2026.web.app/ with explicit owner approval. Its sign-in and registration screens render, and blank sign-in fields show validation errors. Supabase's default site URL and exact HTTPS sign-in/recovery redirects are installed, preserving local/mobile redirects and undeclared settings.
+- Signup completion no longer notifies a disposed screen model; two regression tests pass. Analyzer is clean. The existing local DWDS debug session failed hot restart with a debugger JSON error; hosted-release checks were performed independently and do not claim that debug session restarted successfully.
 
 - All seven Flutter tests, nine PostgreSQL security tests, two real image-processing tests, and eight live access checks passed again.
 - The existing signed-in browser session loads the feed, communities, events, profile, saved posts and notifications. Empty states render for collections without content, and saved-post back navigation works. No user content was posted or deleted during these checks.

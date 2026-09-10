@@ -9,7 +9,7 @@ major_version = 17
 [auth]
 enabled = true
 site_url = "http://localhost:5173"
-additional_redirect_urls = ["http://localhost:5173/", "http://127.0.0.1:5173/", "app.studentconnect://auth/callback", "http://localhost:5173/?recovery=1", "http://127.0.0.1:5173/?recovery=1", "app.studentconnect://auth/callback?recovery=1"]
+additional_redirect_urls = ["http://localhost:5173/", "http://127.0.0.1:5173/", "app.studentconnect://auth/callback", "http://localhost:5173/?recovery=1", "http://127.0.0.1:5173/?recovery=1", "app.studentconnect://auth/callback?recovery=1", "https://student-connect-ppsu-2026.web.app/", "https://student-connect-ppsu-2026.web.app/?recovery=1"]
 enable_signup = true
 enable_anonymous_sign_ins = false
 minimum_password_length = 10

@@ -8,6 +8,9 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val releaseStore = System.getenv("STUDENT_CONNECT_KEYSTORE")
+val releasePassword = System.getenv("STUDENT_CONNECT_KEYSTORE_PASSWORD")
+
 android {
     namespace = "app.studentconnect.student_connect"
     compileSdk = flutter.compileSdkVersion
@@ -33,13 +36,33 @@ android {
         versionName = flutter.versionName
     }
 
-    buildTypes {
-        release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+    signingConfigs {
+        create("release") {
+            if (!releaseStore.isNullOrBlank() && !releasePassword.isNullOrBlank()) {
+                storeFile = file(releaseStore)
+                storePassword = releasePassword
+                keyAlias = "student-connect-upload"
+                keyPassword = releasePassword
+            }
         }
     }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.getByName("release")
+        }
+    }
+}
+
+tasks.register("validateStudentConnectSigning") {
+    doLast {
+        check(!releaseStore.isNullOrBlank() && !releasePassword.isNullOrBlank()) {
+            "Release signing is missing. Run scripts/build-release.ps1 with your protected signing credentials."
+        }
+    }
+}
+tasks.matching { it.name == "preReleaseBuild" }.configureEach {
+    dependsOn("validateStudentConnectSigning")
 }
 
 kotlin {

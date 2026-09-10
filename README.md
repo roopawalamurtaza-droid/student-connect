@@ -37,10 +37,10 @@ The exact approved email domain is ppsu.ac.in. The Auth signup hook rejects othe
 
 ## What still needs account setup
 
-1. **Email sender:** configure a custom SMTP provider in Supabase so verification and password-reset messages can reach university addresses. The default mailer only sends to project team members. Real student registration cannot complete until this is supplied; no email verification has been bypassed and no fake verified student was created.
+1. **Email sender:** the Resend account is created; a verified sender domain or university SMTP relay is still needed. See [the university IT request](docs/UNIVERSITY_EMAIL_SETUP.md) and [release setup](docs/RELEASE.md). The default Supabase mailer only sends to project team members. Real student registration cannot complete until the sender is supplied; no email verification has been bypassed and no fake verified student was created.
 2. **Telemetry and push validation:** the FCM-only sender is installed in Supabase secrets, with Vault-backed dispatch scheduled every minute when eligible jobs exist. The worker authenticated successfully with an empty queue. Real device delivery still needs a verified student and notification permission; iOS needs APNs credentials. Google Analytics is linked to property 553447807 in the existing Default Account for Firebase. Crash reporting hooks initialize, but crash ingestion is not yet verified.
 3. **First administrator:** after a real university user verifies email and onboards, assign that exact user through the trusted SQL procedure in the backend guide. No administrator was invented from the sample email address.
-4. **Release:** production HTTPS hosting/callbacks, app signing, privacy/retention policy and store accounts. iOS building and APNs validation require a Mac with Xcode and Apple credentials.
+4. **Release:** dedicated Android signing is configured and the release APK signature verifies. The key is stored outside Git with its password protected by Windows; preserve a secure backup before distribution. Production HTTPS hosting/callbacks, privacy/retention policy and store accounts remain. iOS building and APNs validation require a Mac with Xcode and Apple credentials. See [release instructions](docs/RELEASE.md).
 
 ## Structure and checks
 

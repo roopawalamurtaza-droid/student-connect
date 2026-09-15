@@ -33,7 +33,7 @@ class LegalScreen extends StatelessWidget {
             ),
             const _PolicySection(
               title: 'Storage and service providers',
-              body: 'Supabase stores identity and application data. Firebase provides hosting, diagnostics, analytics, and device messaging. Student Connect does not sell student data. Access is limited to operating, securing, and improving the service.',
+              body: 'Supabase stores identity and application data. Firebase provides hosting, diagnostics, analytics, and device messaging. Cloudflare Turnstile processes browser and device signals to protect authentication from bots. Student Connect does not sell student data. Access is limited to operating, securing, and improving the service.',
             ),
             const _PolicySection(
               title: 'Retention and deletion',

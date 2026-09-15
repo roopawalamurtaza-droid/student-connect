@@ -113,12 +113,36 @@ class PreviewRepository implements CampusRepository {
     });
   }
 
-  List<CampusItem> _items(String path) =>
-      _collection(path).entries
-          .map((e) => CampusItem(e.key, Map<String, dynamic>.from(e.value)))
-          .toList()
-          .reversed
-          .toList();
+  List<CampusItem> _items(String path) {
+    final uri = Uri.parse(path);
+    final items = _collection(uri.path).entries
+        .map((e) => CampusItem(e.key, Map<String, dynamic>.from(e.value)))
+        .toList()
+        .reversed
+        .toList();
+    if (uri.path != 'events') return items;
+    final from = DateTime.tryParse(uri.queryParameters['from'] ?? '');
+    final before = DateTime.tryParse(uri.queryParameters['before'] ?? '');
+    final query = uri.queryParameters['q']?.toLowerCase() ?? '';
+    final filtered = items
+        .where(
+          (event) =>
+              event.text('title').toLowerCase().contains(query) &&
+              (from == null || !event.date('startsAt').isBefore(from)) &&
+              (before == null || event.date('startsAt').isBefore(before)) &&
+              (uri.queryParameters['mine'] != 'true' ||
+                  _collection('events/${event.id}/registrations')
+                      .containsKey(uid)),
+        )
+        .toList();
+    filtered.sort(
+      (a, b) => before == null
+          ? a.date('startsAt').compareTo(b.date('startsAt'))
+          : b.date('startsAt').compareTo(a.date('startsAt')),
+    );
+    return filtered;
+  }
+
   @override
   Stream<List<CampusItem>> watch(String path) async* {
     yield _items(path);

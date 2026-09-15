@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../models/campus_item.dart';
@@ -7,10 +10,34 @@ import '../../widgets/common.dart';
 import '../../widgets/paged_items.dart';
 import '../../theme/app_theme.dart';
 
-class EventsScreen extends StatelessWidget {
+class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key, required this.repository, required this.me});
   final CampusRepository repository;
   final CampusItem me;
+  @override
+  State<EventsScreen> createState() => _EventsScreenState();
+}
+
+class _EventsScreenState extends State<EventsScreen> {
+  final search = TextEditingController();
+  Timer? debounce;
+  String filter = 'upcoming', query = '';
+  late DateTime boundary = DateTime.now();
+
+  @override
+  void dispose() {
+    debounce?.cancel();
+    search.dispose();
+    super.dispose();
+  }
+
+  void updateSearch(String value) {
+    debounce?.cancel();
+    debounce = Timer(const Duration(milliseconds: 350), () {
+      if (mounted) setState(() => query = value.trim());
+    });
+  }
+
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -20,14 +47,71 @@ class EventsScreen extends StatelessWidget {
         'Be there. Be part of it.',
         'Workshops, meetups, and moments worth showing up for.',
       ),
+      TextField(
+        controller: search,
+        onChanged: updateSearch,
+        decoration: InputDecoration(
+          labelText: 'Search campus events',
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: IconButton(
+            tooltip: 'Clear event search',
+            icon: const Icon(Icons.clear),
+            onPressed: () {
+              search.clear();
+              debounce?.cancel();
+              setState(() => query = '');
+            },
+          ),
+        ),
+      ),
+      const SizedBox(height: 16),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final entry in {
+            'upcoming': 'Upcoming',
+            'mine': 'My registrations',
+            'past': 'Past events',
+          }.entries)
+            ChoiceChip(
+              label: Text(entry.value),
+              selected: filter == entry.key,
+              onSelected: (_) => setState(() {
+                filter = entry.key;
+                boundary = DateTime.now();
+              }),
+            ),
+        ],
+      ),
+      const SizedBox(height: 20),
       PagedItems(
-        repository: repository,
-        path: 'events',
+        repository: widget.repository,
+        path: Uri(
+          path: 'events',
+          queryParameters: {
+            'q': query,
+            if (filter == 'upcoming')
+              'from': boundary.toUtc().toIso8601String(),
+            if (filter == 'past') 'before': boundary.toUtc().toIso8601String(),
+            if (filter == 'mine') 'mine': 'true',
+          },
+        ).toString(),
         builder: (items) => items.isEmpty
-            ? const EmptyState(
+            ? EmptyState(
                 icon: Icons.event_outlined,
-                title: 'Something good is on its way',
-                body: 'New campus events will appear here.',
+                title: query.isNotEmpty
+                    ? 'No matching events'
+                    : filter == 'mine'
+                    ? 'Your plans start here'
+                    : filter == 'past'
+                    ? 'No past events yet'
+                    : 'Something good is on its way',
+                body: query.isNotEmpty
+                    ? 'Try another event title or clear the search.'
+                    : filter == 'mine'
+                    ? 'Choose an upcoming event and register. It will appear here.'
+                    : 'Campus events will appear here as they are published.',
               )
             : LayoutBuilder(
                 builder: (context, size) {
@@ -42,7 +126,7 @@ class EventsScreen extends StatelessWidget {
                           (event) => SizedBox(
                             width: width,
                             child: EventCard(
-                              repository: repository,
+                              repository: widget.repository,
                               event: event,
                             ),
                           ),
@@ -140,6 +224,21 @@ class EventCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 22),
+                TextButton.icon(
+                  icon: const Icon(Icons.copy_outlined, size: 18),
+                  label: const Text('Copy event details'),
+                  onPressed: () async {
+                    await Clipboard.setData(
+                      ClipboardData(
+                        text:
+                            '${event.text('title')}\n${DateFormat('EEE, d MMM yyyy · h:mm a').format(date)}\n${event.text('location')}\n\n${event.text('description')}',
+                      ),
+                    );
+                    if (context.mounted) {
+                      showMessage(context, 'Event details copied.');
+                    }
+                  },
+                ),
                 Items(
                   repository: repository,
                   path: 'events/${event.id}/registrations',

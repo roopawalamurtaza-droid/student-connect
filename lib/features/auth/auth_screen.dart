@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_turnstile/flutter_turnstile.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../repositories/auth_repository.dart';
 import '../../services/auth_service.dart';
 import 'auth_view_model.dart';
+import 'captcha_session.dart';
+import 'security_challenge.dart';
 
 import '../../core/config.dart';
 import '../../theme/app_theme.dart';
@@ -33,7 +34,9 @@ class _AuthScreenState extends State<AuthScreen> {
           AuthRepository(SupabaseAuthService(Supabase.instance.client)),
         )
       : null;
-  final captcha = TurnstileController();
+  int captchaGeneration = 0;
+  final challenge = CaptchaSession();
+  String? captchaError;
   @override
   void initState() {
     super.initState();
@@ -49,7 +52,6 @@ class _AuthScreenState extends State<AuthScreen> {
   void dispose() {
     model?.removeListener(_changed);
     model?.dispose();
-    captcha.dispose();
     email.dispose();
     password.dispose();
     super.dispose();
@@ -68,16 +70,98 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<T> _withCaptcha<T>(Future<T> Function(String? token) request) async {
-    if (AppConfig.recaptchaKey.isEmpty) return request(null);
-    final token = captcha.token;
-    if (token == null || token.isEmpty) {
-      throw StateError('Complete the security check and try again.');
+    if (challenge.busy) {
+      throw StateError('Please wait for the current request.');
     }
+    final required = AppConfig.recaptchaKey.isNotEmpty;
+    if (required && !challenge.ready()) {
+      throw StateError('Complete the security check below and try again.');
+    }
+    final result = challenge.run(request, required: required);
+    setState(() {});
     try {
-      return await request(token);
+      return await result;
     } finally {
-      await captcha.refreshToken();
+      if (mounted) {
+        setState(() {});
+        if (required) await _refreshCaptcha();
+      }
     }
+  }
+
+  Future<void> _refreshCaptcha() async {
+    challenge.clear();
+    if (mounted) {
+      setState(() {
+        captchaGeneration++;
+        captchaError = null;
+      });
+    }
+  }
+
+  Widget _securityCheck() {
+    if (AppConfig.recaptchaKey.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 300;
+          return Column(
+            children: [
+              Semantics(
+                label: 'Security verification',
+                child: Center(
+                  child: SecurityChallenge(
+                    key: ValueKey((
+                      compact,
+                      Theme.of(context).brightness,
+                      captchaGeneration,
+                    )),
+                    compact: compact,
+                    onToken: (token) {
+                      if (mounted) {
+                        setState(() {
+                          challenge.receive(token);
+                          captchaError = null;
+                        });
+                      }
+                    },
+                    onExpired: () {
+                      if (mounted) {
+                        setState(() {
+                          challenge.clear();
+                          captchaError =
+                              'Security check expired. Please try it again.';
+                        });
+                      }
+                    },
+                    onError: () {
+                      if (mounted) {
+                        setState(() {
+                          challenge.clear();
+                          captchaError = 'Security check could not load. Check your connection and try again.';
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ),
+              if (captchaError != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  captchaError!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+                TextButton(
+                  onPressed: challenge.busy ? null : _refreshCaptcha,
+                  child: const Text('Retry security check'),
+                ),
+              ],
+            ],
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -88,7 +172,7 @@ class _AuthScreenState extends State<AuthScreen> {
         child: LayoutBuilder(
           builder: (context, size) => Row(
             children: [
-              if (size.maxWidth >= 950)
+              if (size.maxWidth >= 950 && size.maxHeight >= 700)
                 Expanded(
                   child: Container(
                     margin: const EdgeInsets.all(24),
@@ -215,6 +299,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                           const SizedBox(height: 30),
                           if (model?.pendingEmail != null) ...[
+                            _securityCheck(),
                             ActionButton(
                               label: 'Continue to sign in',
                               onPressed: () async {
@@ -225,17 +310,21 @@ class _AuthScreenState extends State<AuthScreen> {
                             const SizedBox(height: 12),
                             ActionButton(
                               label: 'Resend verification email',
-                              onPressed: () async {
-                                await _withCaptcha(
-                                  (token) => model!.resend(captchaToken: token),
-                                );
-                                if (context.mounted) {
-                                  showMessage(
-                                    context,
-                                    'Verification email sent.',
-                                  );
-                                }
-                              },
+                              secondary: true,
+                              onPressed: challenge.busy
+                                  ? null
+                                  : () async {
+                                      await _withCaptcha(
+                                        (token) =>
+                                            model!.resend(captchaToken: token),
+                                      );
+                                      if (context.mounted) {
+                                        showMessage(
+                                          context,
+                                          'Verification email sent.',
+                                        );
+                                      }
+                                    },
                             ),
                           ] else ...[
                             if (!connected)
@@ -258,6 +347,9 @@ class _AuthScreenState extends State<AuthScreen> {
                                   children: [
                                     TextFormField(
                                       controller: email,
+                                      enabled: !challenge.busy,
+                                      textInputAction: TextInputAction.next,
+                                      autocorrect: false,
                                       keyboardType: TextInputType.emailAddress,
                                       autofillHints: const [
                                         AutofillHints.email,
@@ -278,6 +370,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                     const SizedBox(height: 16),
                                     TextFormField(
                                       controller: password,
+                                      enabled: !challenge.busy,
                                       obscureText: hidden,
                                       autofillHints: [
                                         register
@@ -303,19 +396,25 @@ class _AuthScreenState extends State<AuthScreen> {
                                           : null,
                                     ),
                                     const SizedBox(height: 20),
+                                    _securityCheck(),
                                     SizedBox(
                                       width: double.infinity,
                                       child: ActionButton(
                                         label: register
                                             ? 'Create account'
                                             : 'Sign in',
-                                        onPressed: authenticate,
+                                        onPressed: challenge.busy
+                                            ? null
+                                            : authenticate,
                                       ),
                                     ),
                                     const SizedBox(height: 8),
                                     TextButton(
-                                      onPressed: () =>
-                                          setState(() => register = !register),
+                                      onPressed: challenge.busy
+                                          ? null
+                                          : () => setState(
+                                              () => register = !register,
+                                            ),
                                       child: Text(
                                         register
                                             ? 'Already a member? Sign in'
@@ -324,32 +423,35 @@ class _AuthScreenState extends State<AuthScreen> {
                                     ),
                                     ActionButton(
                                       label: 'Forgot password',
-                                      onPressed: () async {
-                                        if (!email.text.contains('@')) {
-                                          throw StateError(
-                                            'Enter your email above first.',
-                                          );
-                                        }
-                                        if (!AppConfig.isUniversityEmail(
-                                          email.text,
-                                        )) {
-                                          throw StateError(
-                                            'Use an approved university email address.',
-                                          );
-                                        }
-                                        await _withCaptcha(
-                                          (token) => model!.forgot(
-                                            email.text,
-                                            captchaToken: token,
-                                          ),
-                                        );
-                                        if (context.mounted) {
-                                          showMessage(
-                                            context,
-                                            'If an account exists, a password reset email is on its way.',
-                                          );
-                                        }
-                                      },
+                                      secondary: true,
+                                      onPressed: challenge.busy
+                                          ? null
+                                          : () async {
+                                              if (!email.text.contains('@')) {
+                                                throw StateError(
+                                                  'Enter your email above first.',
+                                                );
+                                              }
+                                              if (!AppConfig.isUniversityEmail(
+                                                email.text,
+                                              )) {
+                                                throw StateError(
+                                                  'Use an approved university email address.',
+                                                );
+                                              }
+                                              await _withCaptcha(
+                                                (token) => model!.forgot(
+                                                  email.text,
+                                                  captchaToken: token,
+                                                ),
+                                              );
+                                              if (context.mounted) {
+                                                showMessage(
+                                                  context,
+                                                  'If an account exists, a password reset email is on its way.',
+                                                );
+                                              }
+                                            },
                                     ),
                                   ],
                                 ),
@@ -364,41 +466,6 @@ class _AuthScreenState extends State<AuthScreen> {
                                   label: const Text('Explore local preview'),
                                 ),
                               ),
-                          ],
-                          if (connected &&
-                              AppConfig.recaptchaKey.isNotEmpty) ...[
-                            const SizedBox(height: 20),
-                            Semantics(
-                              label: 'Security verification',
-                              child: Center(
-                                child: CloudFlareTurnstile(
-                                  siteKey: AppConfig.recaptchaKey,
-                                  baseUrl: AppConfig.captchaBaseUrl,
-                                  controller: captcha,
-                                  options: TurnstileOptions(
-                                    mode: TurnstileMode.managed,
-                                    size: TurnstileSize.normal,
-                                    theme:
-                                        Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? TurnstileTheme.dark
-                                        : TurnstileTheme.light,
-                                    language: 'en',
-                                    retryAutomatically: true,
-                                  ),
-                                  onTokenReceived: (_) {},
-                                  onTokenExpired: () {},
-                                  onError: (_) {
-                                    if (mounted) {
-                                      showMessage(
-                                        context,
-                                        'Security check could not load. Please try again.',
-                                      );
-                                    }
-                                  },
-                                ),
-                              ),
-                            ),
                           ],
                           const SizedBox(height: 32),
                           Wrap(

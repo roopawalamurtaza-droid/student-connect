@@ -45,4 +45,6 @@ Follow the repeatable checklist in [ACCEPTANCE_TEST.md](ACCEPTANCE_TEST.md). The
 
 ## CAPTCHA
 
+The hosted pilot now has Turnstile enforcement enabled and verified. See [CAPTCHA.md](CAPTCHA.md) for the current rollout state and rotation instructions. Old APKs without the site key must be replaced with the refreshed build.
+
 Student Connect is wired for Cloudflare Turnstile on registration, sign-in, resend, and password reset. Create a Turnstile widget for the production web domain and the configured native `CAPTCHA_BASE_URL`, add its public site key as `RECAPTCHA_SITE_KEY`, then enable Turnstile under Supabase Authentication → Attack Protection using the matching secret key. Enable backend enforcement only after a build containing the public key has been deployed, or authentication will stop working.

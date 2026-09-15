@@ -1,5 +1,16 @@
 # Validation — 10 September 2026
 
+## 16 September 2026 CAPTCHA and usability update
+
+- Cloudflare Turnstile created and Supabase Auth protection enabled. Live missing-token request is rejected with `captcha_failed`; a real browser token reaches ordinary credential validation for a nonexistent account. No account was created and no email was sent by this check.
+- Replaced the broken package web iframe with direct official-script rendering. Live normal and compact widgets both show Success, including a 320-pixel viewport. Native challenge completion still needs a physical-device check.
+- Authentication now consumes tokens once, expires them, prevents overlapping actions, regenerates challenges after requests, and offers recovery from load errors. Verification remains enforced by Supabase, independent of Flutter validation.
+- Published searchable events, upcoming/past filters, own-registration filtering, and event detail copying. Server-side filters run before pagination; registration visibility continues to use existing RLS.
+- Improved form boundaries/focus, secondary password-recovery action, smaller-window layout, understandable auth errors, and retry controls for failed data loads.
+- Flutter analyzer is clean. All 15 Flutter tests and nine database security tests pass. New tests cover expired/used tokens, concurrent requests, search and own event plans at 320 and 1440 pixel widths.
+- Firebase Hosting sends revalidation headers to reduce stale client caching. Rebuilt clients must be used for protected authentication; old APKs without the site key cannot sign in.
+- Fresh two-student acceptance, SMTP delivery, physical push receipt, Crashlytics ingestion, and Play testing remain unverified external rollout requirements.
+
 - Flutter 3.47.2 / Dart 3.13.2; strict analyzer clean.
 - Nine Flutter tests passed: profile/post/report mapping, university domain matching, existing repository behavior, mobile/desktop navigation/publishing layouts, and signup completion both before and after screen disposal.
 - Nine PostgreSQL/PGlite security tests passed: verification/domain gates, no role escalation, ownership, notifications, blocking, event permissions/registration privacy, suspension, private RPCs, draft media privacy, signup hook, administrator hierarchy and last-admin retention.

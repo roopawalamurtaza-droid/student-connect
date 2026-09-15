@@ -38,6 +38,8 @@ class SupabaseDataService {
       ];
     }
     final select = switch (table) {
+      'events' when uri.queryParameters['mine'] == 'true' =>
+        '*,event_registrations!inner(user_id)',
       'profiles' => '*,departments(name),user_roles(role)',
       'posts' => '*,author:profiles!posts_author_id_fkey(name,department:departments(name)),post_media(media_assets(path))',
       'comments' => '*,author:profiles!comments_author_id_fkey(name)',
@@ -45,6 +47,15 @@ class SupabaseDataService {
       _ => '*',
     };
     var query = client.from(table).select(select);
+    if (table == 'events') {
+      final boundary = uri.queryParameters['from'];
+      final before = uri.queryParameters['before'];
+      if (boundary != null) query = query.gte('starts_at', boundary);
+      if (before != null) query = query.lt('starts_at', before);
+      if (uri.queryParameters['mine'] == 'true') {
+        query = query.eq('event_registrations.user_id', uid);
+      }
+    }
     if (uri.path == 'profile') query = query.eq('id', uid);
     if (parts.length == 3) {
       final column = switch (parts.first) {
@@ -86,7 +97,10 @@ class SupabaseDataService {
     final offset = (int.tryParse(uri.queryParameters['offset'] ?? '') ?? 0)
         .clamp(0, 100000);
     return await query
-        .order(order, ascending: table == 'events')
+        .order(
+          order,
+          ascending: table == 'events' && uri.queryParameters['before'] == null,
+        )
         .range(offset, offset + count.clamp(1, 500) - 1);
   }
 }

@@ -12,6 +12,16 @@ void showMessage(BuildContext context, String text) =>
     );
 String readableError(Object error) {
   if (error is AuthException) {
+    if (error.code == 'over_email_send_rate_limit' ||
+        error.message.toLowerCase().contains('email rate limit')) {
+      return 'Email delivery is temporarily busy. Wait before requesting another email. If this keeps happening, contact your campus administrator.';
+    }
+    if (error.code == 'captcha_failed') {
+      return 'The security check expired or could not be verified. Complete a fresh check and try again.';
+    }
+    if (error.code == 'invalid_credentials') {
+      return 'That email and password do not match. Try again or reset your password.';
+    }
     if (error.code == 'email_address_not_authorized') {
       return 'Email delivery is still being set up. Contact your campus administrator.';
     }
@@ -45,10 +55,12 @@ class ActionButton extends StatefulWidget {
     required this.label,
     required this.onPressed,
     this.icon,
+    this.secondary = false,
   });
   final String label;
   final Future<void> Function()? onPressed;
   final IconData? icon;
+  final bool secondary;
   @override
   State<ActionButton> createState() => _ActionButtonState();
 }
@@ -56,28 +68,36 @@ class ActionButton extends StatefulWidget {
 class _ActionButtonState extends State<ActionButton> {
   bool busy = false;
   @override
-  Widget build(BuildContext context) => FilledButton.icon(
-    onPressed: busy || widget.onPressed == null
-        ? null
-        : () async {
-            setState(() => busy = true);
-            try {
-              await widget.onPressed!();
-            } catch (e) {
-              if (context.mounted) showMessage(context, readableError(e));
-            } finally {
-              if (mounted) setState(() => busy = false);
-            }
-          },
-    icon: busy
-        ? const SizedBox(
-            width: 16,
-            height: 16,
-            child: CircularProgressIndicator(strokeWidth: 2),
+  Widget build(BuildContext context) {
+    final button = FilledButton.icon(
+      onPressed: busy || widget.onPressed == null
+          ? null
+          : () async {
+              setState(() => busy = true);
+              try {
+                await widget.onPressed!();
+              } catch (e) {
+                if (context.mounted) showMessage(context, readableError(e));
+              } finally {
+                if (mounted) setState(() => busy = false);
+              }
+            },
+      icon: busy
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(widget.icon ?? Icons.arrow_forward, size: 18),
+      label: Text(busy ? 'Please wait…' : widget.label),
+    );
+    return widget.secondary
+        ? TextButton(
+            onPressed: button.onPressed,
+            child: Text(busy ? 'Please wait…' : widget.label),
           )
-        : Icon(widget.icon ?? Icons.arrow_forward, size: 18),
-    label: Text(busy ? 'Please wait…' : widget.label),
-  );
+        : button;
+  }
 }
 
 class Items extends StatefulWidget {
@@ -115,10 +135,20 @@ class _ItemsState extends State<Items> {
     stream: stream,
     builder: (context, snapshot) {
       if (snapshot.hasError) {
-        return EmptyState(
-          icon: Icons.wifi_off_rounded,
-          title: 'Couldn’t load this right now',
-          body: readableError(snapshot.error!),
+        return Column(
+          children: [
+            EmptyState(
+              icon: Icons.wifi_off_rounded,
+              title: 'Couldn’t load this right now',
+              body: readableError(snapshot.error!),
+            ),
+            OutlinedButton.icon(
+              onPressed: () =>
+                  setState(() => stream = widget.repository.watch(widget.path)),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Try again'),
+            ),
+          ],
         );
       }
       if (!snapshot.hasData) {

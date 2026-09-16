@@ -53,6 +53,7 @@ class SupabaseDataService {
       ];
     }
     final select = switch (table) {
+      'posts' when uri.queryParameters['joined'] == 'true' => '*,author:profiles!posts_author_id_fkey(name,department:departments(name)),post_media(media_assets(path)),communities!inner(community_members!inner(user_id))',
       'events' when uri.queryParameters['mine'] == 'true' =>
         '*,event_registrations!inner(user_id)',
       'profiles' => '*,departments(name),user_roles(role)',
@@ -62,6 +63,9 @@ class SupabaseDataService {
       _ => '*',
     };
     var query = client.from(table).select(select);
+    if (table == 'posts' && uri.queryParameters['joined'] == 'true') {
+      query = query.eq('communities.community_members.user_id', uid);
+    }
     if (table == 'events') {
       final boundary = uri.queryParameters['from'];
       final before = uri.queryParameters['before'];

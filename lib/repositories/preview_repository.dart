@@ -123,7 +123,14 @@ class PreviewRepository implements CampusRepository {
     if (uri.path == 'posts') {
       final query = uri.queryParameters['q']?.toLowerCase() ?? '';
       return items
-          .where((post) => post.text('body').toLowerCase().contains(query))
+          .where(
+            (post) =>
+                post.text('body').toLowerCase().contains(query) &&
+                (uri.queryParameters['joined'] != 'true' ||
+                    _collection(
+                      'communities/${post.text('communityId')}/members',
+                    ).containsKey(uid)),
+          )
           .toList();
     }
     if (uri.path == 'users') {

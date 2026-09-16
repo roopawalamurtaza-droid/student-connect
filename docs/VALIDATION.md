@@ -1,5 +1,12 @@
 # Validation
 
+## Personal campus feed
+
+- Added All campus/My communities controls and explicit Refresh feed. Membership and post-text filters are sent together before pagination using existing relationships and row policies; no database migration is required.
+- Home remains mounted while another workspace tab is shown, retaining search, filter, loaded page, and scroll position. Session exit still clears this state. Other tabs retain their existing lifecycle.
+- All 26 Flutter tests pass. New checks cover the transport membership/search/pagination request and community filtering, refresh, and search/scroll retention across navigation. Existing mobile/desktop navigation and publishing tests also pass.
+- Analyzer clean; web release published to Firebase Hosting and hosted JavaScript SHA-256 matches the build. Android binaries are unchanged. Live authenticated multi-student acceptance remains separate from these automated checks.
+
 ## 16 September 2026 student discovery
 
 - Discovery searches name, department, skills, and bio interests before pagination; My department/My semester filters combine with search. Matches use literal case-insensitive substrings, including punctuation, and stable name/ID ordering.

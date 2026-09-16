@@ -368,22 +368,29 @@ class _WorkspaceState extends State<Workspace> {
                           ),
                         ),
                       Expanded(
-                        child: SingleChildScrollView(
-                          key: ValueKey(selected),
-                          padding: EdgeInsets.all(wide ? 32 : 18),
-                          child: Align(
-                            alignment: Alignment.topCenter,
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 1160),
-                              child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 220),
-                                child: KeyedSubtree(
-                                  key: ValueKey(selected),
-                                  child: pages[selected],
-                                ),
-                              ),
-                            ),
-                          ),
+                        child: IndexedStack(
+                          index: selected == 0 ? 0 : 1,
+                          children: [
+                            for (final pageIndex in [
+                              0,
+                              if (selected != 0) selected else -1,
+                            ])
+                              pageIndex == -1
+                                  ? const SizedBox.shrink()
+                                  : SingleChildScrollView(
+                                      key: ValueKey(pageIndex),
+                                      padding: EdgeInsets.all(wide ? 32 : 18),
+                                      child: Align(
+                                        alignment: Alignment.topCenter,
+                                        child: ConstrainedBox(
+                                          constraints: const BoxConstraints(
+                                            maxWidth: 1160,
+                                          ),
+                                          child: pages[pageIndex],
+                                        ),
+                                      ),
+                                    ),
+                          ],
                         ),
                       ),
                     ],

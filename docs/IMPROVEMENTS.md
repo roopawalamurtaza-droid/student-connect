@@ -21,9 +21,9 @@ Retry protection applies while the session draft is retained. Reloading or signi
 - [ ] Verify browser back/forward, refresh, and Android deep links.
 
 ## 4. Personal campus feed
-- [ ] Filter to joined communities.
-- [ ] Preserve scroll position and search when switching tabs.
-- [ ] Add explicit refresh and informative loading states.
+- [x] Filter to joined communities before pagination, combined with post search.
+- [x] Preserve home feed scroll position, page, search, and filter when switching tabs during the session.
+- [x] Add explicit feed refresh with loading/error states and guidance for an empty community feed.
 
 ## 5. Profile polish
 - [ ] Display uploaded profile photos consistently with accessible initials fallback.

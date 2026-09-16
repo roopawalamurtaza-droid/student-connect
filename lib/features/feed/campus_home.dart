@@ -32,6 +32,8 @@ class _CampusHomeState extends State<CampusHome> {
   final search = TextEditingController();
   Timer? debounce;
   String query = '';
+  bool joinedOnly = false;
+  int refreshVersion = 0;
   late final upcoming = Uri(
     path: 'events',
     queryParameters: {
@@ -308,6 +310,28 @@ class _CampusHomeState extends State<CampusHome> {
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 14),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        ChoiceChip(
+                          label: const Text('All campus'),
+                          selected: !joinedOnly,
+                          onSelected: (_) => setState(() => joinedOnly = false),
+                        ),
+                        ChoiceChip(
+                          label: const Text('My communities'),
+                          selected: joinedOnly,
+                          onSelected: (_) => setState(() => joinedOnly = true),
+                        ),
+                        TextButton.icon(
+                          onPressed: () => setState(() => refreshVersion++),
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Refresh feed'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
                     TextField(
                       controller: search,
                       onChanged: (value) {
@@ -332,19 +356,27 @@ class _CampusHomeState extends State<CampusHome> {
                     ),
                     const SizedBox(height: 18),
                     PagedItems(
+                      key: ValueKey(refreshVersion),
                       repository: widget.repository,
                       path: Uri(
                         path: 'posts',
-                        queryParameters: {'q': query},
+                        queryParameters: {
+                          'q': query,
+                          if (joinedOnly) 'joined': 'true',
+                        },
                       ).toString(),
                       builder: (posts) => posts.isEmpty
                           ? EmptyState(
                               icon: Icons.forum_outlined,
                               title: query.isEmpty
-                                  ? 'Start the conversation'
+                                  ? joinedOnly
+                                        ? 'Your communities are quiet'
+                                        : 'Start the conversation'
                                   : 'No matching conversations',
                               body: query.isEmpty
-                                  ? 'Share an idea or ask your campus a question.'
+                                  ? joinedOnly
+                                        ? 'Join a community in Discover or start a conversation in one you’ve joined.'
+                                        : 'Share an idea or ask your campus a question.'
                                   : 'Try another phrase or clear the search.',
                             )
                           : Column(

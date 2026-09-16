@@ -46,7 +46,7 @@ before(async()=>{
  create table storage.objects(id uuid primary key,bucket_id text,name text);alter table storage.objects enable row level security;
  create publication supabase_realtime;
  `);
- for(const file of ['202609090001_core.sql','202609090002_mutations.sql','202609090003_storage_realtime.sql','202609090005_signup_hook.sql','202609090006_media_and_reminders.sql','202609090007_media_privacy.sql','202609090008_admin_integrity.sql','202609160001_post_idempotency.sql']) {
+ for(const file of ['202609090001_core.sql','202609090002_mutations.sql','202609090003_storage_realtime.sql','202609090005_signup_hook.sql','202609090006_media_and_reminders.sql','202609090007_media_privacy.sql','202609090008_admin_integrity.sql','202609160001_post_idempotency.sql','202609160002_student_discovery.sql']) {
   const sql=await readFile(new URL('../migrations/'+file,import.meta.url),'utf8');
   // PGlite runs PostgreSQL but not the pg_cron extension; cloud scheduling is checked separately.
   await db.exec(file.includes('006_')?sql.split('-- This database-only')[0]:sql);
@@ -56,6 +56,26 @@ before(async()=>{
  for(const [id,name] of [[alice,'Alice'],[bob,'Bob']]) await mutate(id,'saveProfile',{name,enrollment:name,department:'Engineering',semester:1,bio:'',skills:[]});
 });
 after(async()=>{await db?.close();});
+test('student discovery filters before pagination and preserves privacy',async()=>{
+ await db.query("update profiles set skills=array['Robotics'],bio='Weekend hiking' where id=$1",[bob]);
+ const search=(uid,q='',department='',semester=null,offset=0)=>as(uid,'select search_students($1,$2,$3,$4,1) as result',[q,department,semester,offset]);
+ assert.equal((await search(alice,'robot')).rows[0].result.id,bob);
+ assert.equal((await search(alice,'HIKING')).rows[0].result.id,bob);
+ assert.equal((await search(alice,'engineering')).rows.length,1);
+ assert.equal((await search(alice,'','Engineering',1,1)).rows[0].result.id,bob);
+ assert.equal((await search(alice,'','Design')).rows.length,0);
+ assert.equal((await search(alice,'','',8)).rows.length,0);
+ assert.equal((await search(alice,'%')).rows.length,0);
+ assert.equal((await search(outsider)).rows.length,0);
+ assert.equal((await search(unverified)).rows.length,0);
+ await mutate(bob,'blockUser',{id:alice});
+ assert.equal((await search(alice,'robot')).rows.length,0);
+ await mutate(bob,'unblockUser',{id:alice});
+ await db.query('update profiles set suspended=true where id=$1',[bob]);
+ assert.equal((await search(alice,'robot')).rows.length,0);
+ assert.equal((await search(bob)).rows.length,0);
+ await db.query("update profiles set suspended=false,skills='{}',bio='' where id=$1",[bob]);
+});
 test('verified domain is required even when bypassing the client',async()=>{
  for(const id of [outsider,unverified]) await assert.rejects(mutate(id,'saveProfile',{name:'Bad',enrollment:id,department:'X',semester:1,skills:[]}),/verified university/);
 });

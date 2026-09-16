@@ -1,5 +1,13 @@
 # Validation
 
+## 16 September 2026 student discovery
+
+- Discovery searches name, department, skills, and bio interests before pagination; My department/My semester filters combine with search. Matches use literal case-insensitive substrings, including punctuation, and stable name/ID ordering.
+- New invoker-rights search RPC retains row policies and explicitly excludes blocked/suspended profiles. The administrator directory keeps its existing query and moderation visibility.
+- Student cards show up to three skills; profile dialogs scroll on small screens. Clear search resets text and both filters.
+- All 24 Flutter tests and 12 database tests pass, with a clean analyzer. New widget tests cover skills, combined filters, empty states, and reset at 320/1440 pixels; SQL tests cover pagination, literal search, domain access, blocking, and suspension.
+- Migration `202609160002_student_discovery.sql` applied to production and the web release published to Firebase Hosting. Hosted `main.dart.js` matches the local release by SHA-256. Android binaries have not been rebuilt for this update; authenticated live student acceptance remains pending.
+
 ## 16 September 2026 publishing receipts
 
 - Server receipts prevent repeated create-post requests for the same account/request key, including retries after the post has been deleted. Concurrent requests with that key serialize in the database transaction.

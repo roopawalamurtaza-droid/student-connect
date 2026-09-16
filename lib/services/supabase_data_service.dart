@@ -22,6 +22,21 @@ class SupabaseDataService {
     final uri = Uri.parse(path);
     final parts = uri.path.split('/');
     final table = tableFor(uri.path);
+    if (uri.path == 'users' && uri.queryParameters['discovery'] == 'true') {
+      final rows = await client.rpc<List<dynamic>>(
+        'search_students',
+        params: {
+          'search_text': uri.queryParameters['q'] ?? '',
+          'department_name': uri.queryParameters['department'] ?? '',
+          'semester_number': int.tryParse(
+            uri.queryParameters['semester'] ?? '',
+          ),
+          'page_offset': int.tryParse(uri.queryParameters['offset'] ?? '') ?? 0,
+          'page_size': int.tryParse(uri.queryParameters['limit'] ?? '') ?? 30,
+        },
+      );
+      return rows.map((row) => Map<String, dynamic>.from(row as Map)).toList();
+    }
     if (table == 'likes' && parts.length == 3) {
       final total = await client
           .from('likes')

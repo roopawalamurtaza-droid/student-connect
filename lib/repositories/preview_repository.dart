@@ -126,6 +126,22 @@ class PreviewRepository implements CampusRepository {
           .where((post) => post.text('body').toLowerCase().contains(query))
           .toList();
     }
+    if (uri.path == 'users') {
+      final query = uri.queryParameters['q']?.toLowerCase() ?? '';
+      final department = uri.queryParameters['department'];
+      final semester = int.tryParse(uri.queryParameters['semester'] ?? '');
+      return items
+          .where(
+            (item) =>
+                '${item.name} ${item.text('bio')} ${item.text('department')} ${item.strings('skills').join(' ')}'
+                    .toLowerCase()
+                    .contains(query) &&
+                (department == null || item.text('department') == department) &&
+                (semester == null || item.number('semester') == semester),
+          )
+          .toList()
+        ..sort((a, b) => a.name.compareTo(b.name));
+    }
     if (uri.path == 'savedFeed') {
       final saved = _collection('users/$uid/saved');
       return _items('posts')

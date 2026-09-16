@@ -11,8 +11,9 @@
 Retry protection applies while the session draft is retained. Reloading or signing out discards that draft; manually composing the same text again creates a new request. Future mutation migrations must preserve the public receipt wrapper and update the private `campus_mutate_without_receipt` implementation.
 
 ## 2. Better student discovery
-- [ ] Search skills, departments, and interests with server-side filters before pagination.
-- [ ] Add useful filters and clear reset controls, keeping blocked/suspended profiles excluded.
+- [x] Search names, skills, departments, and bio interests on the server before pagination.
+- [x] Add My department and My semester filters with a clear reset action; exclude blocked/suspended profiles from discovery.
+- [x] Show skills on student cards and make profile details scrollable on small screens.
 
 ## 3. Shareable links
 - [ ] Add routes for individual posts, events, and communities.

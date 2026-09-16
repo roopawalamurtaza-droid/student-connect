@@ -20,10 +20,23 @@ class DiscoverScreen extends StatefulWidget {
 
 class _DiscoverScreenState extends State<DiscoverScreen> {
   String query = '', category = 'communities';
+  final searchController = TextEditingController();
+  bool sameDepartment = false, sameSemester = false;
+  void resetSearch() {
+    debounce?.cancel();
+    searchController.clear();
+    setState(() {
+      query = '';
+      sameDepartment = false;
+      sameSemester = false;
+    });
+  }
+
   Timer? debounce;
   @override
   void dispose() {
     debounce?.cancel();
+    searchController.dispose();
     super.dispose();
   }
 
@@ -37,6 +50,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         'Meet a collaborator. Find a club. Try something new.',
       ),
       TextField(
+        controller: searchController,
         onChanged: (text) {
           debounce?.cancel();
           debounce = Timer(const Duration(milliseconds: 350), () {
@@ -69,18 +83,56 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 .toList(),
       ),
       const SizedBox(height: 8),
-      const Text(
-        'Search by name, event title, or post text.',
-        style: TextStyle(fontSize: 11),
+      Text(
+        category == 'users'
+            ? 'Find people by name, skills, department, or interests in their bio.'
+            : 'Search by name, event title, or post text.',
+        style: const TextStyle(fontSize: 12),
       ),
+      if (category == 'users') ...[
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            if (widget.me.text('department').isNotEmpty)
+              FilterChip(
+                label: const Text('My department'),
+                selected: sameDepartment,
+                onSelected: (value) => setState(() => sameDepartment = value),
+              ),
+            FilterChip(
+              label: const Text('My semester'),
+              selected: sameSemester,
+              onSelected: (value) => setState(() => sameSemester = value),
+            ),
+          ],
+        ),
+      ],
+      if (query.isNotEmpty || sameDepartment || sameSemester)
+        TextButton.icon(
+          onPressed: resetSearch,
+          icon: const Icon(Icons.close),
+          label: const Text('Clear search and filters'),
+        ),
       const SizedBox(height: 20),
       PagedItems(
         repository: widget.repository,
-        path: widget.repository.isPreview
+        path: widget.repository.isPreview && category != 'users'
             ? category
-            : Uri(path: category, queryParameters: {'q': query}).toString(),
+            : Uri(
+                path: category,
+                queryParameters: {
+                  'q': query,
+                  if (category == 'users') 'discovery': 'true',
+                  if (category == 'users' && sameDepartment)
+                    'department': widget.me.text('department'),
+                  if (category == 'users' && sameSemester)
+                    'semester': '${widget.me.number('semester')}',
+                },
+              ).toString(),
         builder: (all) {
-          final items = widget.repository.isPreview
+          final items = widget.repository.isPreview && category != 'users'
               ? all
                     .where(
                       (item) => item.data.values
@@ -92,10 +144,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     .toList()
               : all;
           if (items.isEmpty) {
-            return const EmptyState(
+            return EmptyState(
               icon: Icons.search_off,
-              title: 'Nothing here just yet',
-              body: 'Try another search or check back as your campus grows.',
+              title: category == 'users'
+                  ? 'No students match yet'
+                  : 'Nothing here just yet',
+              body: 'Try a broader search or clear your filters.',
             );
           }
           return Column(
@@ -126,10 +180,35 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                             item.name,
                             style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
-                          subtitle: Text(
-                            '${item.text('department')}\n${item.text('bio')}',
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${item.text('department')} · Semester ${item.number('semester')}',
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                item.text('bio'),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (item.strings('skills').isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Wrap(
+                                    spacing: 6,
+                                    runSpacing: 4,
+                                    children: item
+                                        .strings('skills')
+                                        .take(3)
+                                        .map(
+                                          (skill) => Chip(label: Text(skill)),
+                                        )
+                                        .toList(),
+                                  ),
+                                ),
+                            ],
                           ),
-                          isThreeLine: true,
                           trailing: IconButton(
                             tooltip: 'Report user',
                             icon: const Icon(Icons.flag_outlined),
@@ -143,6 +222,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                           onTap: () => showDialog<void>(
                             context: context,
                             builder: (context) => AlertDialog(
+                              scrollable: true,
                               title: Text(item.name),
                               content: Column(
                                 mainAxisSize: MainAxisSize.min,

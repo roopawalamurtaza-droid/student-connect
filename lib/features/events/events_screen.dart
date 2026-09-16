@@ -9,6 +9,7 @@ import '../../repositories/campus_repository.dart';
 import '../../widgets/common.dart';
 import '../../widgets/paged_items.dart';
 import '../../theme/app_theme.dart';
+import '../../routes/shared_content.dart';
 
 class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key, required this.repository, required this.me});
@@ -224,6 +225,13 @@ class EventCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 22),
+                if (!repository.isPreview)
+                  TextButton.icon(
+                    icon: const Icon(Icons.link),
+                    label: const Text('Copy event link'),
+                    onPressed: () =>
+                        copyContentLink(context, 'events', event.id),
+                  ),
                 TextButton.icon(
                   icon: const Icon(Icons.copy_outlined, size: 18),
                   label: const Text('Copy event details'),

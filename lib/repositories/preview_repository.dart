@@ -120,6 +120,10 @@ class PreviewRepository implements CampusRepository {
         .toList()
         .reversed
         .toList();
+    final targetId = uri.queryParameters['id'];
+    if (targetId != null) {
+      return items.where((item) => item.id == targetId).toList();
+    }
     if (uri.path == 'posts') {
       final query = uri.queryParameters['q']?.toLowerCase() ?? '';
       return items

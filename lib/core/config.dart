@@ -7,7 +7,7 @@ class AppConfig {
       supabaseUrl.isNotEmpty && supabaseKey.isNotEmpty;
   static const allowPreview = bool.fromEnvironment('ENABLE_LOCAL_PREVIEW');
   static String get authRedirect => kIsWeb
-      ? Uri.base.replace(query: '', fragment: '').toString()
+      ? Uri.base.replace(path: '/', query: '', fragment: '').toString()
       : 'app.studentconnect://auth/callback';
   static const firebaseEnabled = bool.fromEnvironment('FIREBASE_ENABLED');
   static String get passwordRedirect =>

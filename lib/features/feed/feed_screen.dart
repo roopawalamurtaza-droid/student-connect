@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../routes/shared_content.dart';
 
 import '../../models/campus_item.dart';
 import '../../repositories/campus_repository.dart';
@@ -60,7 +63,11 @@ class PostCard extends StatelessWidget {
                 tooltip: 'Post options',
                 onSelected: (action) async {
                   try {
-                    if (action == 'report') {
+                    if (action == 'copyLink') {
+                      await copyContentLink(context, 'posts', post.id);
+                    } else if (action == 'openLink') {
+                      context.go(ContentTarget('posts', post.id).path);
+                    } else if (action == 'report') {
                       await reportItem(context, repository, 'posts', post.id);
                     } else if (action == 'save') {
                       await repository.mutate('savePost', {'id': post.id});
@@ -98,6 +105,16 @@ class PostCard extends StatelessWidget {
                   }
                 },
                 itemBuilder: (_) => [
+                  if (!repository.isPreview) ...[
+                    const PopupMenuItem(
+                      value: 'openLink',
+                      child: Text('Open post'),
+                    ),
+                    const PopupMenuItem(
+                      value: 'copyLink',
+                      child: Text('Copy post link'),
+                    ),
+                  ],
                   const PopupMenuItem(
                     value: 'save',
                     child: Text('Save / unsave post'),

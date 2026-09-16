@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/supabase_data_service.dart';
@@ -18,6 +19,7 @@ import '../repositories/preview_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 import 'workspace.dart';
+import '../routes/shared_content.dart';
 
 class StudentConnectApp extends StatefulWidget {
   const StudentConnectApp({
@@ -25,9 +27,11 @@ class StudentConnectApp extends StatefulWidget {
     this.startupError,
     this.initialRecovery = false,
     this.allowPreview = AppConfig.allowPreview,
+    this.initialLocation,
   });
   final bool allowPreview, initialRecovery;
   final String? startupError;
+  final String? initialLocation;
   @override
   State<StudentConnectApp> createState() => _StudentConnectAppState();
 }
@@ -36,6 +40,40 @@ class _StudentConnectAppState extends State<StudentConnectApp> {
   ThemeMode mode = ThemeMode.light;
   CampusRepository? preview;
   final navigatorKey = GlobalKey<NavigatorState>();
+  final gateRevision = ValueNotifier<int>(0);
+  Widget _gate(ContentTarget? target) => ValueListenableBuilder<int>(
+    valueListenable: gateRevision,
+    builder: (_, _, _) => _sessionGate(target),
+  );
+  late final router = GoRouter(
+    navigatorKey: navigatorKey,
+    initialLocation: widget.initialLocation,
+    routes: [
+      GoRoute(path: '/', builder: (_, state) => _gate(null)),
+      GoRoute(
+        path: '/:kind/:id',
+        builder: (_, state) {
+          final target = ContentTarget.parse(state.uri);
+          return target == null ? _unknownLink() : _gate(target);
+        },
+      ),
+    ],
+    errorBuilder: (_, _) => _unknownLink(),
+  );
+  Widget _unknownLink() => Scaffold(
+    body: Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('This link is not available.'),
+          TextButton(
+            onPressed: () => router.go('/'),
+            child: const Text('Go to campus home'),
+          ),
+        ],
+      ),
+    ),
+  );
   StreamSubscription<AuthState>? authSubscription;
   late bool recoveryPending = widget.initialRecovery;
   String? previousUser;
@@ -90,74 +128,89 @@ class _StudentConnectAppState extends State<StudentConnectApp> {
   void dispose() {
     authSubscription?.cancel();
     preview?.dispose();
+    router.dispose();
+    gateRevision.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-    navigatorKey: navigatorKey,
+  Widget build(BuildContext context) => MaterialApp.router(
+    routerConfig: router,
     title: 'Student Connect',
     debugShowCheckedModeBanner: false,
     theme: AppTheme.build(Brightness.light),
     darkTheme: AppTheme.build(Brightness.dark),
     themeMode: mode,
-    home: preview != null
-        ? SessionGate(
-            repository: preview!,
-            onTheme: toggleTheme,
-            onExit: () async {
-              setState(() {
-                preview?.dispose();
-                preview = null;
-              });
-            },
-          )
-        : AppConfig.supabaseEnabled && widget.startupError == null
-        ? StreamBuilder<AuthState>(
-            stream: Supabase.instance.client.auth.onAuthStateChange,
-            initialData: AuthState(
-              AuthChangeEvent.initialSession,
-              Supabase.instance.client.auth.currentSession,
-            ),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                );
-              }
-              final state = snapshot.data;
-              final user = state?.session?.user;
-              if (recoveryPending && user != null) {
-                return ResetPasswordScreen(
-                  onDone: () => setState(() {
-                    recoveryPending = false;
-                  }),
-                );
-              }
-              if (user == null || user.emailConfirmedAt == null) {
-                return AuthScreen(
-                  onPreview: widget.allowPreview ? _preview : null,
-                  onTheme: toggleTheme,
-                );
-              }
-              return SupabaseSession(
-                key: ValueKey(user.id),
-                uid: user.id,
+  );
+  Widget _sessionGate(ContentTarget? target) => preview != null
+      ? SessionGate(
+          repository: preview!,
+          target: target,
+          onTheme: toggleTheme,
+          onExit: () async {
+            setState(() {
+              preview?.dispose();
+              preview = null;
+            });
+            gateRevision.value++;
+          },
+        )
+      : AppConfig.supabaseEnabled && widget.startupError == null
+      ? StreamBuilder<AuthState>(
+          stream: Supabase.instance.client.auth.onAuthStateChange,
+          initialData: AuthState(
+            AuthChangeEvent.initialSession,
+            Supabase.instance.client.auth.currentSession,
+          ),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+            final state = snapshot.data;
+            final user = state?.session?.user;
+            if (recoveryPending && user != null) {
+              return ResetPasswordScreen(
+                onDone: () => setState(() {
+                  recoveryPending = false;
+                  gateRevision.value++;
+                }),
+              );
+            }
+            if (user == null || user.emailConfirmedAt == null) {
+              return AuthScreen(
+                onPreview: widget.allowPreview ? _preview : null,
                 onTheme: toggleTheme,
               );
-            },
-          )
-        : AuthScreen(
-            onPreview: widget.allowPreview ? _preview : null,
-            onTheme: toggleTheme,
-            error: widget.startupError,
-          ),
-  );
-  void _preview() => setState(() => preview = PreviewRepository());
+            }
+            return SupabaseSession(
+              key: ValueKey(user.id),
+              uid: user.id,
+              onTheme: toggleTheme,
+              target: target,
+            );
+          },
+        )
+      : AuthScreen(
+          onPreview: widget.allowPreview ? _preview : null,
+          onTheme: toggleTheme,
+          error: widget.startupError,
+        );
+  void _preview() {
+    setState(() => preview = PreviewRepository());
+    gateRevision.value++;
+  }
 }
 
 class SupabaseSession extends StatefulWidget {
-  const SupabaseSession({super.key, required this.uid, required this.onTheme});
+  const SupabaseSession({
+    super.key,
+    required this.uid,
+    required this.onTheme,
+    this.target,
+  });
+  final ContentTarget? target;
   final String uid;
   final VoidCallback onTheme;
   @override
@@ -178,6 +231,7 @@ class _SupabaseSessionState extends State<SupabaseSession> {
   @override
   Widget build(BuildContext context) => SessionGate(
     repository: repository,
+    target: widget.target,
     onTheme: widget.onTheme,
     onExit: () => Supabase.instance.client.auth.signOut(),
   );
@@ -189,10 +243,12 @@ class SessionGate extends StatefulWidget {
     required this.repository,
     required this.onTheme,
     required this.onExit,
+    this.target,
   });
   final CampusRepository repository;
   final VoidCallback onTheme;
   final Future<void> Function() onExit;
+  final ContentTarget? target;
   @override
   State<SessionGate> createState() => _SessionGateState();
 }
@@ -255,6 +311,13 @@ class _SessionGateState extends State<SessionGate> {
               ],
             ),
           ),
+        );
+      }
+      if (widget.target != null) {
+        return SharedContentScreen(
+          repository: widget.repository,
+          me: me,
+          target: widget.target!,
         );
       }
       return Workspace(

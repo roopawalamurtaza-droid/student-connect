@@ -1,5 +1,13 @@
 # Validation
 
+## Shareable web content links
+
+- Added path-based web routes for posts, events, and communities with copy-link actions, an unavailable-content state, and a return-home action. The session gate retains the route while signing in or completing a profile. Content reads filter by ID under existing row policies.
+- Email verification and password-recovery callbacks continue to use the approved root URL. Following an email callback in a separate tab does not carry the shared destination; the original shared-link tab retains it.
+- All 30 Flutter tests pass and the analyzer is clean. Tests cover supported/invalid link parsing, all three destinations through preview-session entry, unavailable IDs, route changes, return home, and existing navigation/publishing behavior. These do not substitute for live university-account verification/email acceptance.
+- Native Android App Links, physical-device validation, and dedicated browser back/forward acceptance remain pending. No Android binary is rebuilt in this web increment.
+- Web release published to Firebase Hosting. Hosted JavaScript SHA-256 matches the local build; direct HTTP requests for all three content paths return the Flutter shell successfully, confirming refresh/deep URL hosting rewrites.
+
 ## Personal campus feed
 
 - Added All campus/My communities controls and explicit Refresh feed. Membership and post-text filters are sent together before pagination using existing relationships and row policies; no database migration is required.

@@ -9,6 +9,7 @@ import '../../widgets/paged_items.dart';
 import '../feed/feed_screen.dart';
 import '../feed/post_editor.dart';
 import '../events/events_screen.dart';
+import '../../routes/shared_content.dart';
 
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({super.key, required this.repository, required this.me});
@@ -396,6 +397,13 @@ class CommunityCard extends StatelessWidget {
                 ),
                 child: const Text('Open community'),
               ),
+              if (!repository.isPreview)
+                TextButton.icon(
+                  icon: const Icon(Icons.link),
+                  label: const Text('Copy community link'),
+                  onPressed: () =>
+                      copyContentLink(context, 'communities', item.id),
+                ),
             ],
           ),
         ],

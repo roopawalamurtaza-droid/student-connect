@@ -1,6 +1,7 @@
 import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/student_connect_app.dart';
@@ -9,6 +10,7 @@ import 'services/firebase_bootstrap.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  usePathUrlStrategy();
   String? startupError;
   final initialUri = kIsWeb ? Uri.base : await AppLinks().getInitialLink();
   final recovery = initialUri?.queryParameters['recovery'] == '1';

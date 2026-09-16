@@ -63,6 +63,16 @@ class SupabaseDataService {
       _ => '*',
     };
     var query = client.from(table).select(select);
+    final targetId = uri.queryParameters['id'];
+    if (targetId != null &&
+        ['posts', 'events', 'communities'].contains(table)) {
+      if (!RegExp(
+        r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+      ).hasMatch(targetId)) {
+        return [];
+      }
+      query = query.eq('id', targetId);
+    }
     if (table == 'posts' && uri.queryParameters['joined'] == 'true') {
       query = query.eq('communities.community_members.user_id', uid);
     }

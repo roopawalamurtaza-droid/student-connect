@@ -7,16 +7,8 @@ import 'package:image_picker/image_picker.dart';
 import '../../models/campus_item.dart';
 import '../../repositories/campus_repository.dart';
 import '../../widgets/common.dart';
-
-/// A draft lives only in this signed-in workspace, never in shared storage.
-class PostDraft {
-  String body = '';
-  Uint8List? image;
-  void clear() {
-    body = '';
-    image = null;
-  }
-}
+import 'post_draft.dart';
+export 'post_draft.dart';
 
 class PostEditor extends StatefulWidget {
   const PostEditor({
@@ -42,10 +34,22 @@ class _PostEditorState extends State<PostEditor> {
   );
   late String imagePath = widget.post?.text('imagePath') ?? '';
   late Uint8List? bytes = widget.draft?.image;
+  late final submission = widget.draft ?? PostDraft();
+  bool choosingImage = false;
   @override
   void initState() {
     super.initState();
     body.addListener(_saveDraft);
+    submission.addListener(_submissionChanged);
+  }
+
+  void _submissionChanged() {
+    if (!mounted) return;
+    if (!submission.publishing && widget.draft != null) {
+      body.text = submission.body;
+      bytes = submission.image;
+    }
+    setState(() {});
   }
 
   void _saveDraft() {
@@ -54,33 +58,38 @@ class _PostEditorState extends State<PostEditor> {
 
   @override
   void dispose() {
+    submission.removeListener(_submissionChanged);
     body.dispose();
     super.dispose();
   }
 
   Future<void> publish() async {
+    if (choosingImage) {
+      throw StateError('Wait for your image to finish loading.');
+    }
     final text = body.text.trim();
     if (text.isEmpty || text.length > 3000) {
       throw StateError('Write a post between 1 and 3,000 characters.');
     }
-    if (bytes != null) {
-      final result = await widget.repository.mutate('uploadImage', {
-        'base64': base64Encode(bytes!),
-        'purpose': 'post',
-      });
-      imagePath = result['path'] as String;
-    }
-    final data = {
-      'body': text,
-      'imagePath': imagePath,
-      'communityId': widget.post?.text('communityId') ?? widget.communityId,
-    };
-    await widget.repository.mutate(
-      widget.post == null ? 'createPost' : 'editPost',
-      widget.post == null ? data : {'id': widget.post!.id, 'post': data},
-    );
+    await submission.submit(() async {
+      if (bytes != null) {
+        final result = await widget.repository.mutate('uploadImage', {
+          'base64': base64Encode(bytes!),
+          'purpose': 'post',
+        });
+        imagePath = result['path'] as String;
+      }
+      final data = {
+        'body': text,
+        'imagePath': imagePath,
+        'communityId': widget.post?.text('communityId') ?? widget.communityId,
+      };
+      await widget.repository.mutate(
+        widget.post == null ? 'createPost' : 'editPost',
+        widget.post == null ? data : {'id': widget.post!.id, 'post': data},
+      );
+    });
     if (mounted) {
-      widget.draft?.clear();
       showMessage(
         context,
         widget.repository.isPreview
@@ -116,6 +125,7 @@ class _PostEditorState extends State<PostEditor> {
               const SizedBox(height: 20),
               TextField(
                 controller: body,
+                enabled: !submission.publishing,
                 maxLines: 8,
                 maxLength: 3000,
                 decoration: const InputDecoration(
@@ -133,11 +143,13 @@ class _PostEditorState extends State<PostEditor> {
                 CampusImage(repository: widget.repository, path: imagePath),
               if (bytes != null || imagePath.isNotEmpty)
                 TextButton(
-                  onPressed: () => setState(() {
-                    bytes = null;
-                    widget.draft?.image = null;
-                    imagePath = '';
-                  }),
+                  onPressed: submission.publishing || choosingImage
+                      ? null
+                      : () => setState(() {
+                          bytes = null;
+                          widget.draft?.image = null;
+                          imagePath = '';
+                        }),
                   child: const Text('Remove image'),
                 ),
               const Divider(height: 32),
@@ -148,31 +160,44 @@ class _PostEditorState extends State<PostEditor> {
                   ActionButton(
                     label: 'Add image',
                     icon: Icons.image_outlined,
-                    onPressed: () async {
-                      final file = await ImagePicker().pickImage(
-                        source: ImageSource.gallery,
-                      );
-                      if (file == null) return;
-                      if (await file.length() > 3 * 1024 * 1024) {
-                        throw StateError(
-                          'Choose a JPEG, PNG, or WebP under 3 MB.',
-                        );
-                      }
-                      final data = await file.readAsBytes();
-                      if (mounted) {
-                        setState(() {
-                          bytes = data;
-                          widget.draft?.image = data;
-                        });
-                      }
-                    },
+                    onPressed: submission.publishing || choosingImage
+                        ? null
+                        : () async {
+                            setState(() => choosingImage = true);
+                            try {
+                              final file = await ImagePicker().pickImage(
+                                source: ImageSource.gallery,
+                              );
+                              if (file == null) return;
+                              if (await file.length() > 3 * 1024 * 1024) {
+                                throw StateError(
+                                  'Choose a JPEG, PNG, or WebP under 3 MB.',
+                                );
+                              }
+                              final data = await file.readAsBytes();
+                              if (mounted) {
+                                setState(() {
+                                  bytes = data;
+                                  widget.draft?.image = data;
+                                });
+                              }
+                            } finally {
+                              if (mounted) {
+                                setState(() => choosingImage = false);
+                              }
+                            }
+                          },
                   ),
                   ActionButton(
-                    label: widget.post == null
+                    label: submission.publishing
+                        ? 'Publishing…'
+                        : widget.post == null
                         ? 'Publish post'
                         : 'Save changes',
                     icon: Icons.arrow_upward,
-                    onPressed: publish,
+                    onPressed: submission.publishing || choosingImage
+                        ? null
+                        : publish,
                   ),
                 ],
               ),

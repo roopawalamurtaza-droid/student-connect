@@ -1,5 +1,12 @@
 # Validation — 10 September 2026
 
+## Publishing reliability, first increment
+
+- Session draft now owns a publishing lock across editor instances. Successful submission clears the draft even after the original editor stops listening; failure preserves text and image.
+- Text/image controls are disabled while submitting, and publishing waits until image selection completes.
+- Analyzer clean; all 21 Flutter tests pass. Three new tests cover overlapping submissions, failure recovery, and completion after the editor stops listening.
+- This does not yet provide server-side idempotency after a lost response. That migration remains explicitly pending in IMPROVEMENTS.md.
+
 ## Campus dashboard update
 
 - Replaced the oversized home welcome section with a campus dashboard, responsive shortcuts, expandable announcements, and upcoming events visible on mobile and desktop.

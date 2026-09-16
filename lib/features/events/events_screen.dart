@@ -10,6 +10,8 @@ import '../../widgets/common.dart';
 import '../../widgets/paged_items.dart';
 import '../../theme/app_theme.dart';
 import '../../routes/shared_content.dart';
+import 'calendar_export_dialog.dart';
+import 'event_registration.dart';
 
 class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key, required this.repository, required this.me});
@@ -148,7 +150,6 @@ class EventCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final date = event.date('startsAt');
-    final ended = date.isBefore(DateTime.now());
     return Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,7 +161,7 @@ class EventCard extends StatelessWidget {
               height: 160,
             ),
           Container(
-            height: 130,
+            height: 100,
             width: double.infinity,
             padding: const EdgeInsets.all(24),
             decoration: const BoxDecoration(
@@ -174,7 +175,7 @@ class EventCard extends StatelessWidget {
                   DateFormat('dd\nMMM').format(date).toUpperCase(),
                   style: const TextStyle(
                     color: AppTheme.green,
-                    fontSize: 30,
+                    fontSize: 26,
                     fontWeight: FontWeight.w700,
                     height: 1.1,
                   ),
@@ -182,7 +183,7 @@ class EventCard extends StatelessWidget {
                 const Icon(
                   Icons.bubble_chart_outlined,
                   color: AppTheme.green,
-                  size: 70,
+                  size: 48,
                 ),
               ],
             ),
@@ -225,6 +226,19 @@ class EventCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 22),
+                EventRegistration(repository: repository, event: event),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.calendar_month_outlined),
+                  label: const Text('Add to calendar'),
+                  onPressed: () => showDialog<void>(
+                    context: context,
+                    builder: (_) => CalendarExportDialog(
+                      event: event,
+                      includeLink: !repository.isPreview,
+                    ),
+                  ),
+                ),
                 if (!repository.isPreview)
                   TextButton.icon(
                     icon: const Icon(Icons.link),
@@ -245,38 +259,6 @@ class EventCard extends StatelessWidget {
                     if (context.mounted) {
                       showMessage(context, 'Event details copied.');
                     }
-                  },
-                ),
-                Items(
-                  repository: repository,
-                  path: 'events/${event.id}/registrations',
-                  builder: (items) {
-                    final joined = items.any((p) => p.id == repository.uid);
-                    return ActionButton(
-                      label: ended
-                          ? 'Registration closed'
-                          : joined
-                          ? 'Cancel registration'
-                          : 'Count me in',
-                      icon: joined ? Icons.check : Icons.north_east,
-                      onPressed: ended
-                          ? null
-                          : () async {
-                              await repository.mutate('registerEvent', {
-                                'id': event.id,
-                              });
-                              if (context.mounted) {
-                                showMessage(
-                                  context,
-                                  repository.isPreview
-                                      ? 'Registration updated in this preview.'
-                                      : joined
-                                      ? 'Registration cancelled.'
-                                      : 'You’re registered. An in-app reminder will appear before the event.',
-                                );
-                              }
-                            },
-                    );
                   },
                 ),
               ],

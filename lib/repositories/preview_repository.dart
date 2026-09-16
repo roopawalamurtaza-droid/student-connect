@@ -116,7 +116,14 @@ class PreviewRepository implements CampusRepository {
   List<CampusItem> _items(String path) {
     final uri = Uri.parse(path);
     final items = _collection(uri.path).entries
-        .map((e) => CampusItem(e.key, Map<String, dynamic>.from(e.value)))
+        .map(
+          (e) => CampusItem(e.key, {
+            ...e.value,
+            if (e.value['authorId'] is String)
+              'authorPhotoPath':
+                  _collection('users')[e.value['authorId']]?['photoPath'] ?? '',
+          }),
+        )
         .toList()
         .reversed
         .toList();

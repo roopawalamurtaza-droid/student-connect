@@ -191,25 +191,95 @@ class EmptyState extends StatelessWidget {
   );
 }
 
-class PersonAvatar extends StatelessWidget {
-  const PersonAvatar(this.name, {super.key, this.radius = 22});
+class PersonAvatar extends StatefulWidget {
+  const PersonAvatar(
+    this.name, {
+    super.key,
+    this.radius = 22,
+    this.repository,
+    this.photoPath = '',
+  });
   final String name;
   final double radius;
+  final CampusRepository? repository;
+  final String photoPath;
+  @override
+  State<PersonAvatar> createState() => _PersonAvatarState();
+}
+
+class _PersonAvatarState extends State<PersonAvatar> {
+  Future<Uint8List?>? bytes;
+  void load() {
+    bytes = widget.photoPath.isEmpty
+        ? null
+        : widget.repository?.image(widget.photoPath);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    load();
+  }
+
+  @override
+  void didUpdateWidget(PersonAvatar old) {
+    super.didUpdateWidget(old);
+    if (old.photoPath != widget.photoPath ||
+        old.repository != widget.repository) {
+      load();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final words = name
+    final words = widget.name
         .trim()
         .split(RegExp(r'\s+'))
         .where((s) => s.isNotEmpty)
         .toList();
-    final initials = words.take(2).map((s) => s[0]).join().toUpperCase();
-    return CircleAvatar(
-      radius: radius,
+    final initials = words
+        .take(2)
+        .map((s) => s.characters.first)
+        .join()
+        .toUpperCase();
+    final fallback = CircleAvatar(
+      radius: widget.radius,
       backgroundColor: const Color(0xFFE8EBD9),
       foregroundColor: const Color(0xFF344A39),
       child: Text(
         initials.isEmpty ? 'S' : initials,
-        style: TextStyle(fontWeight: FontWeight.w700, fontSize: radius * .6),
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: widget.radius * .6,
+        ),
+      ),
+    );
+    return Semantics(
+      label: widget.name.trim().isEmpty
+          ? 'Student profile'
+          : 'Profile picture for ${widget.name}',
+      image: true,
+      child: ExcludeSemantics(
+        child: SizedBox.square(
+          dimension: widget.radius * 2,
+          child: bytes == null
+              ? fallback
+              : FutureBuilder<Uint8List?>(
+                  key: ObjectKey(bytes),
+                  future: bytes,
+                  builder: (_, snapshot) => snapshot.hasData
+                      ? ClipOval(
+                          child: Image.memory(
+                            snapshot.data!,
+                            width: widget.radius * 2,
+                            height: widget.radius * 2,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => fallback,
+                          ),
+                        )
+                      : fallback,
+                ),
+        ),
       ),
     );
   }

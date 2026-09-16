@@ -1,5 +1,23 @@
 # Validation
 
+## Release 1.1.0 — event planning and profile polish
+
+- Calendar export creates an `.ics` file containing the event title, location, description, campus link, UTC start time, and user-chosen time reservation. Since the data model has no organizer end time, both the dialog and file explicitly state this limitation. Users may include a 30-minute calendar alarm; this is separate from in-app reminder preferences and registration.
+- Event cards now present explicit registration status and confirm cancellation. Registration controls close at the scheduled start time. Calendar copies are static and cancellation guidance explains that saved calendar entries must be removed separately.
+- Calendar encoding follows [RFC 5545](https://www.rfc-editor.org/rfc/rfc5545): stable UID, escaped text, CRLF separators, UTF-8-safe 75-octet folding, and UTC date/time values. File export uses the [share_plus platform integration](https://pub.dev/packages/share_plus) with a browser download fallback. Export does not claim to have imported an event into a calendar.
+- Added automated checks for timezone conversion, reserved duration, text escaping/Unicode folding, optional alarms, calendar dialog controls at 320/1440 pixels, and registration/cancellation choices. Source version is 1.1.0+2 for upgrade ordering on Android.
+- All 37 Flutter tests pass and the analyzer is clean. Version 1.1.0 web is published to Firebase Hosting and the hosted JavaScript SHA-256 matches the build. No database migration was required.
+- Signed Android APK (57.7 MB) and app bundle (56.5 MB) rebuilt successfully with the existing release key. APK signature verification passes (v2, RSA-3072, CN=Student Connect); package inspection confirms versionName 1.1.0 and versionCode 2. Existing future Kotlin/Java compatibility warnings remain nonblocking.
+- No phone or emulator was connected during the release check. Actual calendar import/share behavior and photo selection on a phone remain unverified; the native app-link, push/crash, and two-student acceptance requirements are still open.
+
+## Profile photos and completion guidance
+
+- Shared avatars load through the existing authenticated media repository in the workspace, profile/editor, student directory/details, posts (including saved/community posts), and comments. Loading, missing, or failed photos retain initials; changed requests cannot display a stale result. Initials use Unicode grapheme boundaries and avatars include a name-based accessibility label.
+- Added an optional photo/bio/skills checklist that scrolls to the photo control or focuses the relevant field. Bio and skills progress reflects current edits with an explicit save reminder; photos save immediately. Background photo refresh preserves unsaved text. Saved bio and skills are visible on the profile header card.
+- All 33 Flutter tests pass with a clean analyzer. New tests cover successful/failed/stale avatar loads, completion guidance/focus/save at 320 and 1440 pixels, and preservation of edits during profile refresh; author mapping includes avatar paths. No database migration or permission changes are needed.
+- Physical-device photo selection and live multi-student acceptance remain pending; automated checks use local test images and the preview repository. Android binaries are not rebuilt in this web increment.
+- The profile web release is now published on Firebase Hosting; hosted JavaScript SHA-256 matches the tested build.
+
 ## Shareable web content links
 
 - Added path-based web routes for posts, events, and communities with copy-link actions, an unavailable-content state, and a return-home action. The session gate retains the route while signing in or completing a profile. Content reads filter by ID under existing row policies.

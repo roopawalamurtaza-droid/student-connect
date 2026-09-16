@@ -176,7 +176,11 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                       _ => Card(
                         child: ListTile(
                           contentPadding: const EdgeInsets.all(18),
-                          leading: PersonAvatar(item.name),
+                          leading: PersonAvatar(
+                            item.name,
+                            repository: widget.repository,
+                            photoPath: item.text('photoPath'),
+                          ),
                           title: Text(
                             item.name,
                             style: const TextStyle(fontWeight: FontWeight.w700),
@@ -229,6 +233,13 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  PersonAvatar(
+                                    item.name,
+                                    repository: widget.repository,
+                                    photoPath: item.text('photoPath'),
+                                    radius: 36,
+                                  ),
+                                  const SizedBox(height: 14),
                                   Text(item.text('department')),
                                   Text('Semester ${item.number('semester')}'),
                                   const SizedBox(height: 14),

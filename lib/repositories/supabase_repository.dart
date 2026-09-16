@@ -44,6 +44,7 @@ class SupabaseCampusRepository implements CampusRepository {
     final author = row['author'] as Map<String, dynamic>?;
     if (author != null) {
       data['authorName'] = author['name'];
+      data['authorPhotoPath'] = author['avatar_path'];
       data['department'] =
           (author['department'] as Map<String, dynamic>?)?['name'];
     }

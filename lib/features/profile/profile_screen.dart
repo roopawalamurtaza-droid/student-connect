@@ -9,6 +9,7 @@ import '../../widgets/common.dart';
 import '../../theme/app_theme.dart';
 import 'account_controls.dart';
 import '../feed/saved_posts_screen.dart';
+import 'profile_checklist.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key, required this.repository, required this.me});
@@ -47,7 +48,12 @@ class ProfileScreen extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               child: Row(
                 children: [
-                  PersonAvatar(me.name, radius: 36),
+                  PersonAvatar(
+                    me.name,
+                    radius: 36,
+                    repository: repository,
+                    photoPath: me.text('photoPath'),
+                  ),
                   const SizedBox(width: 20),
                   Expanded(
                     child: Column(
@@ -70,6 +76,28 @@ class ProfileScreen extends StatelessWidget {
                 ],
               ),
             ),
+            if (me.text('bio').trim().isNotEmpty ||
+                me.strings('skills').isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (me.text('bio').trim().isNotEmpty) Text(me.text('bio')),
+                    if (me.strings('skills').isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: me
+                            .strings('skills')
+                            .map((skill) => Chip(label: Text(skill)))
+                            .toList(),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
           ],
         ),
       ),
@@ -101,6 +129,12 @@ class ProfileEditor extends StatefulWidget {
 
 class _ProfileEditorState extends State<ProfileEditor> {
   final form = GlobalKey<FormState>();
+  final photoKey = GlobalKey();
+  final bioKey = GlobalKey();
+  final skillsKey = GlobalKey();
+  final bioFocus = FocusNode();
+  final skillsFocus = FocusNode();
+  late String photoPath = widget.profile?.text('photoPath') ?? '';
   late final fields = {
     for (final key in [
       'name',
@@ -119,7 +153,33 @@ class _ProfileEditorState extends State<ProfileEditor> {
       ),
   };
   @override
+  void initState() {
+    super.initState();
+    fields['bio']!.addListener(_detailsChanged);
+    fields['skills']!.addListener(_detailsChanged);
+  }
+
+  void _detailsChanged() => setState(() {});
+  void _jumpTo(GlobalKey key, [FocusNode? focus]) {
+    final target = key.currentContext;
+    if (target != null) {
+      Scrollable.ensureVisible(target, alignment: 0.15);
+      focus?.requestFocus();
+    }
+  }
+
+  @override
+  void didUpdateWidget(ProfileEditor old) {
+    super.didUpdateWidget(old);
+    if (old.profile?.text('photoPath') != widget.profile?.text('photoPath')) {
+      photoPath = widget.profile?.text('photoPath') ?? '';
+    }
+  }
+
+  @override
   void dispose() {
+    bioFocus.dispose();
+    skillsFocus.dispose();
     for (final controller in fields.values) {
       controller.dispose();
     }
@@ -161,19 +221,27 @@ class _ProfileEditorState extends State<ProfileEditor> {
           children: [
             Text('Your details', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 22),
-            if (widget.profile?.text('photoPath').isNotEmpty == true) ...[
-              SizedBox(
-                width: 120,
-                child: CampusImage(
-                  repository: widget.repository,
-                  path: widget.profile!.text('photoPath'),
-                  height: 120,
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
             if (widget.profile != null) ...[
+              ProfileChecklist(
+                hasPhoto: photoPath.isNotEmpty,
+                hasBio: fields['bio']!.text.trim().isNotEmpty,
+                hasSkills: fields['skills']!.text
+                    .split(',')
+                    .any((s) => s.trim().isNotEmpty),
+                onPhoto: () => _jumpTo(photoKey),
+                onBio: () => _jumpTo(bioKey, bioFocus),
+                onSkills: () => _jumpTo(skillsKey, skillsFocus),
+              ),
+              const SizedBox(height: 20),
+              PersonAvatar(
+                fields['name']!.text,
+                repository: widget.repository,
+                photoPath: photoPath,
+                radius: 44,
+              ),
+              const SizedBox(height: 12),
               ActionButton(
+                key: photoKey,
                 label: 'Change profile photo',
                 icon: Icons.add_a_photo_outlined,
                 onPressed: () async {
@@ -184,10 +252,16 @@ class _ProfileEditorState extends State<ProfileEditor> {
                   if (await file.length() > 3 * 1024 * 1024) {
                     throw StateError('Choose an image smaller than 3 MB.');
                   }
-                  await widget.repository.mutate('uploadImage', {
-                    'base64': base64Encode(await file.readAsBytes()),
+                  final bytes = await file.readAsBytes();
+                  if (!mounted) return;
+                  final result = await widget.repository.mutate('uploadImage', {
+                    'base64': base64Encode(bytes),
                     'purpose': 'avatar',
                   });
+                  if (mounted) {
+                    setState(() => photoPath = result['path'] as String);
+                    showMessage(this.context, 'Profile photo updated.');
+                  }
                 },
               ),
               const SizedBox(height: 20),
@@ -196,6 +270,16 @@ class _ProfileEditorState extends State<ProfileEditor> {
               (entry) => Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: TextFormField(
+                  key: entry.key == 'bio'
+                      ? bioKey
+                      : entry.key == 'skills'
+                      ? skillsKey
+                      : null,
+                  focusNode: entry.key == 'bio'
+                      ? bioFocus
+                      : entry.key == 'skills'
+                      ? skillsFocus
+                      : null,
                   controller: entry.value,
                   maxLines: entry.key == 'bio' ? 3 : 1,
                   keyboardType: entry.key == 'semester'

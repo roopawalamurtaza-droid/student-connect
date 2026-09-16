@@ -53,13 +53,14 @@ class SupabaseDataService {
       ];
     }
     final select = switch (table) {
-      'posts' when uri.queryParameters['joined'] == 'true' => '*,author:profiles!posts_author_id_fkey(name,department:departments(name)),post_media(media_assets(path)),communities!inner(community_members!inner(user_id))',
+      'posts' when uri.queryParameters['joined'] == 'true' => '*,author:profiles!posts_author_id_fkey(name,avatar_path,department:departments(name)),post_media(media_assets(path)),communities!inner(community_members!inner(user_id))',
       'events' when uri.queryParameters['mine'] == 'true' =>
         '*,event_registrations!inner(user_id)',
       'profiles' => '*,departments(name),user_roles(role)',
-      'posts' => '*,author:profiles!posts_author_id_fkey(name,department:departments(name)),post_media(media_assets(path))',
-      'comments' => '*,author:profiles!comments_author_id_fkey(name)',
-      'saved_posts' => '*,post:posts(*,author:profiles!posts_author_id_fkey(name,department:departments(name)),post_media(media_assets(path)))',
+      'posts' => '*,author:profiles!posts_author_id_fkey(name,avatar_path,department:departments(name)),post_media(media_assets(path))',
+      'comments' =>
+        '*,author:profiles!comments_author_id_fkey(name,avatar_path)',
+      'saved_posts' => '*,post:posts(*,author:profiles!posts_author_id_fkey(name,avatar_path,department:departments(name)),post_media(media_assets(path)))',
       _ => '*',
     };
     var query = client.from(table).select(select);

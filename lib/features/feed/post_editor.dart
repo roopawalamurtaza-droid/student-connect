@@ -243,7 +243,7 @@ class _PostEditorState extends State<PostEditor> {
                 const Padding(
                   padding: EdgeInsets.only(bottom: 8),
                   child: Text(
-                    'Draft stays with you while switching tabs. Leaving the app clears it.',
+                    'Your draft stays while you switch tabs. Refreshing the page, closing the app, or signing out clears it.',
                     style: TextStyle(fontSize: 12),
                   ),
                 ),

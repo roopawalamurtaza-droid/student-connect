@@ -29,6 +29,7 @@ void main() {
       'body': 'Hello',
       'author': {
         'name': 'Student',
+        'avatar_path': 'author/avatar/photo.jpg',
         'department': {'name': 'IT'},
       },
       'post_media': [
@@ -39,6 +40,7 @@ void main() {
     });
     expect(post.text('authorId'), 'author');
     expect(post.text('authorName'), 'Student');
+    expect(post.text('authorPhotoPath'), 'author/avatar/photo.jpg');
     expect(post.text('department'), 'IT');
     expect(post.text('imagePath'), 'author/post/image.jpg');
   });

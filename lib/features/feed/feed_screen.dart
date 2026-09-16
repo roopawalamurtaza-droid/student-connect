@@ -42,7 +42,11 @@ class PostCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              PersonAvatar(post.text('authorName')),
+              PersonAvatar(
+                post.text('authorName'),
+                repository: repository,
+                photoPath: post.text('authorPhotoPath'),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -241,6 +245,8 @@ class _CommentsState extends State<Comments> {
                             (c) => ListTile(
                               leading: PersonAvatar(
                                 c.text('authorName'),
+                                repository: widget.repository,
+                                photoPath: c.text('authorPhotoPath'),
                                 radius: 18,
                               ),
                               title: Text(

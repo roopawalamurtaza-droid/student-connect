@@ -231,7 +231,11 @@ class _WorkspaceState extends State<Workspace> {
                         const SizedBox(height: 20),
                         Row(
                           children: [
-                            PersonAvatar(widget.me.name),
+                            PersonAvatar(
+                              widget.me.name,
+                              repository: r,
+                              photoPath: widget.me.text('photoPath'),
+                            ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Column(

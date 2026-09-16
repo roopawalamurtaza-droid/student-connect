@@ -8,7 +8,7 @@ import '../models/campus_item.dart';
 import '../repositories/campus_repository.dart';
 import '../routes/destination.dart';
 import '../services/notification_service.dart';
-import '../features/feed/feed_screen.dart';
+import '../features/feed/campus_home.dart';
 import '../features/feed/post_editor.dart';
 import '../features/discover/discover_screen.dart';
 import '../features/events/events_screen.dart';
@@ -17,6 +17,7 @@ import '../features/admin/admin_screen.dart';
 import '../features/notifications/notifications_screen.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import '../widgets/notification_bell.dart';
 
 class Workspace extends StatefulWidget {
   const Workspace({
@@ -49,6 +50,7 @@ class _WorkspaceState extends State<Workspace> {
   }
 
   int selected = 0;
+  final postDraft = PostDraft();
   void go(int index) {
     setState(() => selected = index);
     if (!widget.repository.isPreview && Firebase.apps.isNotEmpty) {
@@ -80,14 +82,17 @@ class _WorkspaceState extends State<Workspace> {
   Widget build(BuildContext context) {
     final r = widget.repository;
     final pages = [
-      FeedScreen(
+      CampusHome(
         repository: r,
         me: widget.me,
         onCreate: () => go(2),
         onDiscover: () => go(1),
+        onEvents: () => go(3),
+        onUpdates: () =>
+            open(NotificationsScreen(repository: r), 'Notifications'),
       ),
       DiscoverScreen(repository: r, me: widget.me),
-      PostEditor(repository: r, onSaved: () => go(0)),
+      PostEditor(repository: r, draft: postDraft, onSaved: () => go(0)),
       EventsScreen(repository: r, me: widget.me),
       ProfileScreen(repository: r, me: widget.me),
     ];
@@ -183,45 +188,46 @@ class _WorkspaceState extends State<Workspace> {
                           ),
                         ),
                         const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.all(18),
-                          decoration: BoxDecoration(
-                            color: AppTheme.navy,
-                            borderRadius: BorderRadius.circular(16),
+                        if (size.maxHeight >= 850)
+                          Container(
+                            padding: const EdgeInsets.all(18),
+                            decoration: BoxDecoration(
+                              color: AppTheme.navy,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(
+                                  Icons.auto_awesome,
+                                  color: AppTheme.green,
+                                ),
+                                const SizedBox(height: 12),
+                                const Text(
+                                  'Better, together.',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                const Text(
+                                  'There’s a community\nfor every curiosity.',
+                                  style: TextStyle(
+                                    color: Color(0xFFCAD8C8),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () => go(1),
+                                  child: const Text(
+                                    'Find yours  →',
+                                    style: TextStyle(color: AppTheme.green),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Icon(
-                                Icons.auto_awesome,
-                                color: AppTheme.green,
-                              ),
-                              const SizedBox(height: 12),
-                              const Text(
-                                'Better, together.',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              const Text(
-                                'There’s a community\nfor every curiosity.',
-                                style: TextStyle(
-                                  color: Color(0xFFCAD8C8),
-                                  fontSize: 12,
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () => go(1),
-                                child: const Text(
-                                  'Find yours  →',
-                                  style: TextStyle(color: AppTheme.green),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                         const SizedBox(height: 20),
                         Row(
                           children: [
@@ -275,14 +281,11 @@ class _WorkspaceState extends State<Workspace> {
                                 ),
                               ),
                             ),
-                            IconButton(
-                              tooltip: 'Notifications',
+                            NotificationBell(
+                              repository: r,
                               onPressed: () => open(
                                 NotificationsScreen(repository: r),
                                 'Notifications',
-                              ),
-                              icon: const Icon(
-                                Icons.notifications_none_rounded,
                               ),
                             ),
                             IconButton(

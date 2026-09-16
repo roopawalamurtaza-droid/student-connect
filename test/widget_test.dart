@@ -68,10 +68,18 @@ void main() {
         find.byType(TextField).first,
         'A new campus conversation',
       );
+      await tester.tap(find.byKey(const ValueKey('nav-events')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('nav-create')));
+      await tester.pumpAndSettle();
+      expect(find.text('A new campus conversation'), findsOneWidget);
       await tester.ensureVisible(find.text('Publish post'));
       await tester.tap(find.text('Publish post'));
       await tester.pumpAndSettle();
       expect(find.text('A new campus conversation'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('nav-create')));
+      await tester.pumpAndSettle();
+      expect(find.text('A new campus conversation'), findsNothing);
       await tester.tap(find.byKey(const ValueKey('nav-profile')));
       await tester.pumpAndSettle();
       expect(find.text('Your details'), findsOneWidget);

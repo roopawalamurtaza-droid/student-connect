@@ -120,6 +120,18 @@ class PreviewRepository implements CampusRepository {
         .toList()
         .reversed
         .toList();
+    if (uri.path == 'posts') {
+      final query = uri.queryParameters['q']?.toLowerCase() ?? '';
+      return items
+          .where((post) => post.text('body').toLowerCase().contains(query))
+          .toList();
+    }
+    if (uri.path == 'savedFeed') {
+      final saved = _collection('users/$uid/saved');
+      return _items('posts')
+          .where((post) => saved.containsKey(post.id))
+          .toList();
+    }
     if (uri.path != 'events') return items;
     final from = DateTime.tryParse(uri.queryParameters['from'] ?? '');
     final before = DateTime.tryParse(uri.queryParameters['before'] ?? '');
@@ -183,6 +195,13 @@ class PreviewRepository implements CampusRepository {
         _collection('posts').remove(itemId);
       case 'likePost':
         _toggle('posts/$itemId/likes');
+      case 'savePost':
+        final saved = _collection('users/$uid/saved');
+        if (saved.containsKey(itemId)) {
+          saved.remove(itemId);
+        } else {
+          saved[itemId] = {'createdAt': DateTime.now()};
+        }
       case 'joinCommunity':
         _toggle('communities/$itemId/members');
       case 'registerEvent':

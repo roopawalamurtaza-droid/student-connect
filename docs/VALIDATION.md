@@ -1,5 +1,12 @@
 # Validation — 10 September 2026
 
+## Campus dashboard update
+
+- Replaced the oversized home welcome section with a campus dashboard, responsive shortcuts, expandable announcements, and upcoming events visible on mobile and desktop.
+- Home post search uses the existing server-side query filtering. Added unread notification filtering, a live unread badge, and a bulk action explicitly limited to loaded updates.
+- New-post drafts (text and selected image) survive navigation within the signed-in workspace and clear after publishing or leaving that workspace. Drafts are not written to persistent shared-device storage.
+- All 18 Flutter tests pass and the analyzer is clean, including small-screen dashboard search, draft navigation/publishing, and notification filter/badge/bulk-read agreement. Authenticated multi-student live acceptance remains separate.
+
 ## 16 September 2026 CAPTCHA and usability update
 
 - Cloudflare Turnstile created and Supabase Auth protection enabled. Live missing-token request is rejected with `captcha_failed`; a real browser token reaches ordinary credential validation for a nonexistent account. No account was created and no email was sent by this check.

@@ -8,6 +8,16 @@ import '../../models/campus_item.dart';
 import '../../repositories/campus_repository.dart';
 import '../../widgets/common.dart';
 
+/// A draft lives only in this signed-in workspace, never in shared storage.
+class PostDraft {
+  String body = '';
+  Uint8List? image;
+  void clear() {
+    body = '';
+    image = null;
+  }
+}
+
 class PostEditor extends StatefulWidget {
   const PostEditor({
     super.key,
@@ -15,19 +25,33 @@ class PostEditor extends StatefulWidget {
     required this.onSaved,
     this.post,
     this.communityId = '',
+    this.draft,
   });
   final CampusRepository repository;
   final VoidCallback onSaved;
   final CampusItem? post;
   final String communityId;
+  final PostDraft? draft;
   @override
   State<PostEditor> createState() => _PostEditorState();
 }
 
 class _PostEditorState extends State<PostEditor> {
-  late final body = TextEditingController(text: widget.post?.text('body'));
+  late final body = TextEditingController(
+    text: widget.post?.text('body') ?? widget.draft?.body,
+  );
   late String imagePath = widget.post?.text('imagePath') ?? '';
-  Uint8List? bytes;
+  late Uint8List? bytes = widget.draft?.image;
+  @override
+  void initState() {
+    super.initState();
+    body.addListener(_saveDraft);
+  }
+
+  void _saveDraft() {
+    widget.draft?.body = body.text;
+  }
+
   @override
   void dispose() {
     body.dispose();
@@ -56,6 +80,7 @@ class _PostEditorState extends State<PostEditor> {
       widget.post == null ? data : {'id': widget.post!.id, 'post': data},
     );
     if (mounted) {
+      widget.draft?.clear();
       showMessage(
         context,
         widget.repository.isPreview
@@ -110,6 +135,7 @@ class _PostEditorState extends State<PostEditor> {
                 TextButton(
                   onPressed: () => setState(() {
                     bytes = null;
+                    widget.draft?.image = null;
                     imagePath = '';
                   }),
                   child: const Text('Remove image'),
@@ -133,7 +159,12 @@ class _PostEditorState extends State<PostEditor> {
                         );
                       }
                       final data = await file.readAsBytes();
-                      if (mounted) setState(() => bytes = data);
+                      if (mounted) {
+                        setState(() {
+                          bytes = data;
+                          widget.draft?.image = data;
+                        });
+                      }
                     },
                   ),
                   ActionButton(
@@ -146,6 +177,14 @@ class _PostEditorState extends State<PostEditor> {
                 ],
               ),
               const SizedBox(height: 12),
+              if (widget.draft != null)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    'Draft stays with you while switching tabs. Leaving the app clears it.',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ),
               const Text(
                 'Keep it kind. Respect your community and everyone in it.',
                 style: TextStyle(fontSize: 12),

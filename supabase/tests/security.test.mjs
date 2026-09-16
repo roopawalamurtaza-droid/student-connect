@@ -3,6 +3,33 @@ import { readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { test, before, after } from 'node:test';
 let db;
+test('post receipt prevents retries and cannot be read or reused across users', async()=>{
+ const requestId='10000000-0000-4000-8000-000000000001';
+ const payload={body:'Receipt test',imagePath:'',communityId:'',requestId};
+ const first=(await mutate(alice,'createPost',payload)).rows[0].result;
+ const retry=(await mutate(alice,'createPost',{...payload,body:'Changed retry'})).rows[0].result;
+ assert.equal(retry.id,first.id);
+ assert.equal((await db.query('select body from posts where id=$1',[first.id])).rows[0].body,'Receipt test');
+ const other=(await mutate(bob,'createPost',payload)).rows[0].result;
+ assert.notEqual(other.id,first.id);
+ await assert.rejects(as(alice,'select * from private.post_publish_receipts'),/permission denied/);
+ await assert.rejects(as(alice,"select private.campus_mutate_without_receipt('createPost','{}')"),/permission denied/);
+ await mutate(alice,'deletePost',{id:first.id});
+ assert.equal((await mutate(alice,'createPost',payload)).rows[0].result.id,first.id);
+ assert.equal((await db.query('select id from posts where id=$1',[first.id])).rows.length,0);
+ await db.exec(`update profiles set suspended=true where id='${alice}'`);
+ await assert.rejects(mutate(alice,'createPost',payload),/suspended/);
+ await db.exec(`update profiles set suspended=false where id='${alice}'`);
+ await mutate(bob,'deletePost',{id:other.id});
+});
+test('failed publishing transaction does not consume its request key',async()=>{
+ const requestId='10000000-0000-4000-8000-000000000002';
+ await assert.rejects(mutate(alice,'createPost',{body:'',requestId}));
+ const result=(await mutate(alice,'createPost',{body:'Corrected draft',requestId})).rows[0].result;
+ assert.ok(result.id);
+ assert.equal((await db.query('select * from private.post_publish_receipts where user_id=$1 and request_id=$2',[alice,requestId])).rows.length,1);
+ await mutate(alice,'deletePost',{id:result.id});
+});
 const alice='00000000-0000-0000-0000-000000000001', bob='00000000-0000-0000-0000-000000000002', outsider='00000000-0000-0000-0000-000000000003', unverified='00000000-0000-0000-0000-000000000004';
 async function as(uid,sql,args=[]) {
  await db.exec(`reset role; set role authenticated; select set_config('request.jwt.claim.sub','${uid}',false)`);
@@ -19,7 +46,7 @@ before(async()=>{
  create table storage.objects(id uuid primary key,bucket_id text,name text);alter table storage.objects enable row level security;
  create publication supabase_realtime;
  `);
- for(const file of ['202609090001_core.sql','202609090002_mutations.sql','202609090003_storage_realtime.sql','202609090005_signup_hook.sql','202609090006_media_and_reminders.sql','202609090007_media_privacy.sql','202609090008_admin_integrity.sql']) {
+ for(const file of ['202609090001_core.sql','202609090002_mutations.sql','202609090003_storage_realtime.sql','202609090005_signup_hook.sql','202609090006_media_and_reminders.sql','202609090007_media_privacy.sql','202609090008_admin_integrity.sql','202609160001_post_idempotency.sql']) {
   const sql=await readFile(new URL('../migrations/'+file,import.meta.url),'utf8');
   // PGlite runs PostgreSQL but not the pg_cron extension; cloud scheduling is checked separately.
   await db.exec(file.includes('006_')?sql.split('-- This database-only')[0]:sql);

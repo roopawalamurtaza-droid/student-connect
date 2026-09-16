@@ -4,8 +4,11 @@
 - [x] Keep a publishing lock across editor/tab changes.
 - [x] Clear successful drafts even when the original editor has closed; preserve failed drafts.
 - [x] Prevent edits and image changes during a submission.
-- [ ] Add a server-side idempotency key so retrying after a lost response cannot create another post. Requires database migration and security tests before deployment.
-- [ ] Show upload progress and distinguish a confirmed failure from an unknown outcome.
+- [x] Add a server-side idempotency key: retries of the same retained draft return the original result after a lost response. Private receipts are scoped to each account and survive post deletion.
+- [x] Distinguish confirmed validation failures from an unknown publishing outcome; preserve the original payload for safe retries.
+- [ ] Show image-upload progress.
+
+Retry protection applies while the session draft is retained. Reloading or signing out discards that draft; manually composing the same text again creates a new request. Future mutation migrations must preserve the public receipt wrapper and update the private `campus_mutate_without_receipt` implementation.
 
 ## 2. Better student discovery
 - [ ] Search skills, departments, and interests with server-side filters before pagination.

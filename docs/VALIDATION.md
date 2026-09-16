@@ -1,11 +1,18 @@
-# Validation — 10 September 2026
+# Validation
+
+## 16 September 2026 publishing receipts
+
+- Server receipts prevent repeated create-post requests for the same account/request key, including retries after the post has been deleted. Concurrent requests with that key serialize in the database transaction.
+- Client retains the request key and frozen payload after an unknown outcome; confirmed validation/permission failures allow correction. A successful result clears the draft and rotates the key. Drafts remain session-only.
+- All 22 Flutter tests and 11 PostgreSQL/PGlite security tests pass; Flutter analyzer reports no issues. Tests cover key retention/rotation, receipt isolation, private-function denial, deletion replay, suspended accounts, and transaction failure recovery. Physical network-disconnection testing with two live students remains pending.
+- Migration `202609160001_post_idempotency.sql` applied to production; subsequent dry run reports no pending migrations. Web release deployed to Firebase Hosting, and hosted `main.dart.js` SHA-256 matches the local release. Existing Android binaries have not been rebuilt for this update.
 
 ## Publishing reliability, first increment
 
 - Session draft now owns a publishing lock across editor instances. Successful submission clears the draft even after the original editor stops listening; failure preserves text and image.
 - Text/image controls are disabled while submitting, and publishing waits until image selection completes.
 - Analyzer clean; all 21 Flutter tests pass. Three new tests cover overlapping submissions, failure recovery, and completion after the editor stops listening.
-- This does not yet provide server-side idempotency after a lost response. That migration remains explicitly pending in IMPROVEMENTS.md.
+- This first increment was subsequently extended with server receipts described above.
 
 ## Campus dashboard update
 

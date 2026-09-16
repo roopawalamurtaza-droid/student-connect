@@ -6,6 +6,32 @@ import 'package:student_connect/features/feed/post_draft.dart';
 
 void main() {
   test(
+    'request key and frozen post survive lost response, rotate on success',
+    () async {
+      final draft = PostDraft()..body = 'One post';
+      final key = draft.requestId;
+      expect(
+        key,
+        matches(
+          RegExp(
+            r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+          ),
+        ),
+      );
+      draft.pendingPost = {'body': draft.body, 'requestId': key};
+      await expectLater(
+        draft.submit(() async => throw StateError('Response lost')),
+        throwsStateError,
+      );
+      expect(draft.requestId, key);
+      expect(draft.pendingPost!['body'], 'One post');
+      await draft.submit(() async {});
+      expect(draft.pendingPost, isNull);
+      expect(draft.requestId, isNot(key));
+      draft.dispose();
+    },
+  );
+  test(
     'shared draft blocks overlapping submission and clears after success',
     () async {
       final draft = PostDraft()

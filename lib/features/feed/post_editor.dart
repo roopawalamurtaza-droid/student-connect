@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/campus_item.dart';
 import '../../repositories/campus_repository.dart';
@@ -72,22 +73,42 @@ class _PostEditorState extends State<PostEditor> {
       throw StateError('Write a post between 1 and 3,000 characters.');
     }
     await submission.submit(() async {
-      if (bytes != null) {
+      if (bytes != null && submission.pendingPost == null) {
         final result = await widget.repository.mutate('uploadImage', {
           'base64': base64Encode(bytes!),
           'purpose': 'post',
         });
         imagePath = result['path'] as String;
       }
-      final data = {
-        'body': text,
-        'imagePath': imagePath,
-        'communityId': widget.post?.text('communityId') ?? widget.communityId,
-      };
-      await widget.repository.mutate(
-        widget.post == null ? 'createPost' : 'editPost',
-        widget.post == null ? data : {'id': widget.post!.id, 'post': data},
-      );
+      final data =
+          submission.pendingPost ??
+          {
+            'body': text,
+            'imagePath': imagePath,
+            'communityId':
+                widget.post?.text('communityId') ?? widget.communityId,
+            if (widget.post == null) 'requestId': submission.requestId,
+          };
+      if (widget.post == null) submission.pendingPost = Map.of(data);
+      try {
+        await widget.repository.mutate(
+          widget.post == null ? 'createPost' : 'editPost',
+          widget.post == null ? data : {'id': widget.post!.id, 'post': data},
+        );
+      } on PostgrestException catch (error) {
+        if ([
+          '22023',
+          '23502',
+          '23503',
+          '23505',
+          '23514',
+          '42501',
+          'P0002',
+        ].contains(error.code)) {
+          submission.pendingPost = null;
+        }
+        rethrow;
+      }
     });
     if (mounted) {
       showMessage(
@@ -125,7 +146,8 @@ class _PostEditorState extends State<PostEditor> {
               const SizedBox(height: 20),
               TextField(
                 controller: body,
-                enabled: !submission.publishing,
+                enabled:
+                    !submission.publishing && submission.pendingPost == null,
                 maxLines: 8,
                 maxLength: 3000,
                 decoration: const InputDecoration(
@@ -143,7 +165,10 @@ class _PostEditorState extends State<PostEditor> {
                 CampusImage(repository: widget.repository, path: imagePath),
               if (bytes != null || imagePath.isNotEmpty)
                 TextButton(
-                  onPressed: submission.publishing || choosingImage
+                  onPressed:
+                      submission.publishing ||
+                          choosingImage ||
+                          submission.pendingPost != null
                       ? null
                       : () => setState(() {
                           bytes = null;
@@ -160,7 +185,10 @@ class _PostEditorState extends State<PostEditor> {
                   ActionButton(
                     label: 'Add image',
                     icon: Icons.image_outlined,
-                    onPressed: submission.publishing || choosingImage
+                    onPressed:
+                        submission.publishing ||
+                            choosingImage ||
+                            submission.pendingPost != null
                         ? null
                         : () async {
                             setState(() => choosingImage = true);
@@ -191,6 +219,8 @@ class _PostEditorState extends State<PostEditor> {
                   ActionButton(
                     label: submission.publishing
                         ? 'Publishing…'
+                        : submission.pendingPost != null
+                        ? 'Retry original post'
                         : widget.post == null
                         ? 'Publish post'
                         : 'Save changes',
@@ -202,6 +232,13 @@ class _PostEditorState extends State<PostEditor> {
                 ],
               ),
               const SizedBox(height: 12),
+              if (submission.pendingPost != null && !submission.publishing)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    'We could not confirm the result. Retry to confirm the original post safely; its text and image are kept unchanged.',
+                  ),
+                ),
               if (widget.draft != null)
                 const Padding(
                   padding: EdgeInsets.only(bottom: 8),
